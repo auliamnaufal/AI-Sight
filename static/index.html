@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text to Speech</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        #chat-box { height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; }
+        #text-input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 15px; }
+    </style>
+</head>
+<body>
+    <h1>Text to Speech with Gemini</h1>
+    
+    <div id="chat-box"></div>
+    <input type="text" id="text-input" placeholder="Type your message...">
+    <button id="send-button">Send</button>
+    
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const textInput = document.getElementById('text-input');
+        const sendButton = document.getElementById('send-button');
+        
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        ws.onmessage = async (event) => {
+            if (event.data instanceof Blob) {
+                // Audio data
+                const arrayBuffer = await event.data.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                source.start();
+                
+                addMessage("AI: [Playing audio response]", "ai-message");
+            } else {
+                // Text data
+                const data = JSON.parse(event.data);
+                if (data.type === "text") {
+                    addMessage(`AI: ${data.data}`, "ai-message");
+                } else if (data.type === "status") {
+                    addMessage(`System: ${data.data}`, "system-message");
+                }
+            }
+        };
+        
+        function addMessage(text, className) {
+            const message = document.createElement('div');
+            message.className = className;
+            message.textContent = text;
+            chatBox.appendChild(message);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        
+        sendButton.addEventListener('click', () => {
+            const text = textInput.value.trim();
+            if (text) {
+                addMessage(`You: ${text}`, "user-message");
+                ws.send(JSON.stringify({
+                    text: `SPEAK:${text}`
+                }));
+                textInput.value = '';
+            }
+        });
+        
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
