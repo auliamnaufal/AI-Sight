@@ -1,12 +1,12 @@
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect # type: ignore
 from google import genai
 from backend.settings import get_settings
 import logging
 import numpy as np
-import pyaudio
+import pyaudio # type: ignore
 from typing import Optional
-from fastapi.staticfiles import StaticFiles
+from fastapi.staticfiles import StaticFiles # type: ignore
 from pathlib import Path
 
 # Configure logging
@@ -35,12 +35,12 @@ audio_stream = pyaudio_instance.open(
 class ConnectionManager:
     def __init__(self):
         self.active_connection: Optional[WebSocket] = None
-    
+
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connection = websocket
         logger.info("New WebSocket connection established")
-    
+
     def disconnect(self):
         if self.active_connection:
             self.active_connection = None
@@ -51,13 +51,13 @@ manager = ConnectionManager()
 async def handle_generation(text: str, websocket: WebSocket):
     try:
         logger.debug(f"Starting generation for text: {text}")
-        
+
         # Initialize Gemini client
         client = genai.Client(
             api_key=get_settings().GEMINI_API_KEY,
             http_options={"api_version": "v1alpha"}
         )
-        
+
         config = {
             "generation_config": {
                 "response_modalities": ["AUDIO"],
@@ -68,30 +68,30 @@ async def handle_generation(text: str, websocket: WebSocket):
             },
             "system_instruction": "Respond only with audio."
         }
-        
+
         async with client.aio.live.connect(model="models/gemini-2.0-flash-exp", config=config) as session:
             logger.debug("Gemini session established")
-            
+
             # Send text input
             await session.send(input=text, end_of_turn=True)
             logger.debug(f"Sent text to Gemini: {text}")
-            
+
             # Receive response
             turn = session.receive()
             async for response in turn:
                 logger.debug(f"Received response: {response}")
-                
+
                 if response.data:  # Audio data
                     logger.debug(f"Audio data received: {len(response.data)} bytes")
                     await websocket.send_bytes(response.data)
                     audio_stream.write(response.data)
-                
+
                 if response.text:  # Shouldn't happen with our config
                     logger.warning(f"Unexpected text response: {response.text}")
                     await websocket.send_json({"error": "Unexpected text response"})
-            
+
             logger.debug("Generation completed")
-    
+
     except Exception as e:
         logger.error(f"Error in generation: {str(e)}", exc_info=True)
         await websocket.send_json({"error": str(e)})
@@ -99,20 +99,20 @@ async def handle_generation(text: str, websocket: WebSocket):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
-    
+
     try:
         logger.debug("Starting WebSocket communication")
         await websocket.send_json({"status": "connected"})
-        
+
         while True:
             data = await websocket.receive()
             logger.debug(f"Received data: {data}")
-            
+
             if "text" in data:
                 text = data["text"]
                 logger.info(f"Processing text: {text}")
                 await handle_generation(text, websocket)
-                
+
     except WebSocketDisconnect:
         logger.info("Client disconnected normally")
     except Exception as e:
@@ -120,7 +120,7 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         manager.disconnect()
         logger.debug("WebSocket handler cleanup complete")
-        
+
 @app.get("/")
 async def serve_index():
     from fastapi.responses import FileResponse
