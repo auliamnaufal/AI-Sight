@@ -9,16 +9,6 @@ from typing import Type, Tuple
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from YAML and environment variables.
-
-    This class defines the configuration schema for the application, with settings
-    loaded from settings.yaml file and overridable via environment variables.
-
-    Attributes:
-        OLLAMA_SERVICE_URL: Base URL for the Ollama service endpoint
-        CLOUDRUN_SERVICE_ACCOUNT_KEY: Path to the service account key file for Cloud Run authentication
-        CHAT_HISTORY_DB_URI: Database connection URI for storing chat history
-    """
 
     GEMINI_API_KEY: str
 

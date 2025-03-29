@@ -1,76 +1,440 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Text to Speech</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-See - Gemini Multimodal</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        #chat-box { height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; }
-        #text-input { width: 100%; padding: 10px; margin: 10px 0; }
-        button { padding: 10px 15px; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #4285F4;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .media-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .media-box {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        video, canvas {
+            width: 100%;
+            border-radius: 4px;
+            background: #333;
+        }
+        audio {
+            width: 100%;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #3367D6;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #textInput {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        #responseText {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 100px;
+            border: 1px solid #ddd;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .connected {
+            background: #E6F4EA;
+            color: #137333;
+        }
+        .disconnected {
+            background: #FCE8E6;
+            color: #D93025;
+        }
     </style>
 </head>
 <body>
-    <h1>Text to Speech with Gemini</h1>
+    <h1>AI-See - Gemini Multimodal</h1>
     
-    <div id="chat-box"></div>
-    <input type="text" id="text-input" placeholder="Type your message...">
-    <button id="send-button">Send</button>
-    
+    <div class="container">
+        <div class="status disconnected" id="connectionStatus">Disconnected</div>
+        
+        <div class="media-container">
+            <div class="media-box">
+                <h2>Webcam</h2>
+                <video id="webcam" autoplay playsinline></video>
+                <div class="controls">
+                    <button id="startWebcam">Start Webcam</button>
+                    <button id="stopWebcam" disabled>Stop Webcam</button>
+                </div>
+            </div>
+            
+            <div class="media-box">
+                <h2>Microphone</h2>
+                <audio id="audioOutput" controls></audio>
+                <div class="controls">
+                    <button id="startMic">Start Microphone</button>
+                    <button id="stopMic" disabled>Stop Microphone</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="media-box">
+            <h2>Text Input</h2>
+            <textarea id="textInput" placeholder="Type your message here..."></textarea>
+            <div class="controls">
+                <button id="sendText">Send Message</button>
+            </div>
+        </div>
+        
+        <div class="media-box">
+            <h2>Gemini Response</h2>
+            <div id="responseText"></div>
+            <audio id="geminiAudio" controls></audio>
+        </div>
+    </div>
+
     <script>
-        const chatBox = document.getElementById('chat-box');
-        const textInput = document.getElementById('text-input');
-        const sendButton = document.getElementById('send-button');
+        // WebSocket and state management
+        let socket = null;
+        let clientId = Math.random().toString(36).substring(2, 15);
+        let isConnected = false;
+        let mediaStream = null;
+        let audioContext = null;
+        let audioProcessor = null;
+        let webcamInterval = null;
         
-        const ws = new WebSocket(`ws://${window.location.host}/ws`);
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // DOM elements
+        const connectionStatus = document.getElementById('connectionStatus');
+        const startWebcamBtn = document.getElementById('startWebcam');
+        const stopWebcamBtn = document.getElementById('stopWebcam');
+        const startMicBtn = document.getElementById('startMic');
+        const stopMicBtn = document.getElementById('stopMic');
+        const sendTextBtn = document.getElementById('sendText');
+        const textInput = document.getElementById('textInput');
+        const responseText = document.getElementById('responseText');
+        const webcamVideo = document.getElementById('webcam');
+        const geminiAudio = document.getElementById('geminiAudio');
         
-        ws.onmessage = async (event) => {
-            if (event.data instanceof Blob) {
-                // Audio data
-                const arrayBuffer = await event.data.arrayBuffer();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        // Connect to WebSocket
+        async function connectWebSocket() {
+            if (isConnected) return;
+            
+            try {
+                socket = new WebSocket(`ws://${window.location.hostname}:8000/ws`);
                 
-                const source = audioContext.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(audioContext.destination);
-                source.start();
+                socket.onopen = () => {
+                    isConnected = true;
+                    connectionStatus.textContent = "Connected";
+                    connectionStatus.className = "status connected";
+                    console.log("WebSocket connected");
+                };
                 
-                addMessage("AI: [Playing audio response]", "ai-message");
-            } else {
-                // Text data
-                const data = JSON.parse(event.data);
-                if (data.type === "text") {
-                    addMessage(`AI: ${data.data}`, "ai-message");
-                } else if (data.type === "status") {
-                    addMessage(`System: ${data.data}`, "system-message");
-                }
+                socket.onclose = () => {
+                    isConnected = false;
+                    connectionStatus.textContent = "Disconnected";
+                    connectionStatus.className = "status disconnected";
+                    console.log("WebSocket disconnected");
+                };
+                
+                socket.onerror = (error) => {
+                    console.error("WebSocket error:", error);
+                };
+                
+                socket.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    
+                    if (message.type === 'audio') {
+                        // Convert the string back to bytes
+                        const byteString = atob(message.data);
+                        const bytes = new Uint8Array(byteString.length);
+                        for (let i = 0; i < byteString.length; i++) {
+                            bytes[i] = byteString.charCodeAt(i);
+                        }
+                        
+                        // Create a blob and play it
+                        const blob = new Blob([bytes], { type: 'audio/wav' });
+                        const audioUrl = URL.createObjectURL(blob);
+                        geminiAudio.src = audioUrl;
+                        geminiAudio.play();
+                    } else if (message.type === 'text') {
+                        responseText.innerHTML += `<p>${message.data}</p>`;
+                    }
+                };
+                
+            } catch (error) {
+                console.error("Error connecting to WebSocket:", error);
             }
-        };
-        
-        function addMessage(text, className) {
-            const message = document.createElement('div');
-            message.className = className;
-            message.textContent = text;
-            chatBox.appendChild(message);
-            chatBox.scrollTop = chatBox.scrollHeight;
         }
         
-        sendButton.addEventListener('click', () => {
+        // Start webcam
+        async function startWebcam() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                webcamVideo.srcObject = mediaStream;
+                startWebcamBtn.disabled = true;
+                stopWebcamBtn.disabled = false;
+                
+                // Start sending frames periodically
+                webcamInterval = setInterval(async () => {
+                    if (!isConnected) return;
+                    
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = webcamVideo.videoWidth;
+                        canvas.height = webcamVideo.videoHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+                        
+                        // Convert to JPEG and send
+                        canvas.toBlob(async (blob) => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const base64data = reader.result.split(',')[1];
+                                    socket.send(JSON.stringify({
+                                        type: 'image',
+                                        data: base64data
+                                    }));
+                            };
+                            reader.readAsDataURL(blob);
+                        }, 'image/jpeg', 0.7);
+                    } catch (error) {
+                        console.error("Error capturing webcam frame:", error);
+                    }
+                }, 500); // Send every 500ms
+                
+            } catch (error) {
+                console.error("Error accessing webcam:", error);
+            }
+        }
+        
+        // Stop webcam
+        function stopWebcam() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                webcamVideo.srcObject = null;
+                mediaStream = null;
+            }
+            if (webcamInterval) {
+                clearInterval(webcamInterval);
+                webcamInterval = null;
+            }
+            startWebcamBtn.disabled = false;
+            stopWebcamBtn.disabled = true;
+        }
+        
+        // Start microphone
+        async function startMicrophone() {
+            try {
+                console.log("Requesting microphone access...");
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 16000
+                    },
+                    video: false
+                });
+                console.log("Microphone access granted");
+
+                // UI updates
+                startMicBtn.disabled = true;
+                stopMicBtn.disabled = false;
+                // statusDisplay.textContent = "🎤 Microphone active - Speak now";
+
+                // Audio context setup
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 16000
+                });
+                console.log("AudioContext created, sample rate:", audioContext.sampleRate);
+
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                console.log("MediaStreamSource created");
+
+                // Processor setup
+                const BUFFER_SIZE = 4096;
+                audioProcessor = audioContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
+                console.log("ScriptProcessor created with buffer size:", BUFFER_SIZE);
+
+                // Audio processing
+                audioProcessor.onaudioprocess = (event) => {
+                    if (!isConnected) {
+                        console.warn("Not connected - skipping audio processing");
+                        return;
+                    }
+
+                    if (!socket || socket.readyState !== WebSocket.OPEN) {
+                        console.warn("WebSocket not ready - skipping audio send");
+                        return;
+                    }
+
+                    const inputData = event.inputBuffer.getChannelData(0);
+                    console.debug("Processing audio frame with", inputData.length, "samples");
+
+                    // Convert to 16-bit PCM
+                    const pcmData = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32767));
+                    }
+
+                    // Send immediately (remove if you want chunking)
+                    try {
+                        const audioMessage = {
+                            type: 'audio',
+                            data: Array.from(pcmData),
+                            sampleRate: audioContext.sampleRate,
+                            timestamp: Date.now()
+                        };
+                        socket.send(JSON.stringify(audioMessage));
+                        console.debug("Sent audio chunk with", pcmData.length, "samples");
+                    } catch (error) {
+                        console.error("Error sending audio:", error);
+                    }
+                };
+
+                // Connect nodes
+                source.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                console.log("Audio nodes connected");
+
+                // Handle suspended state
+                if (audioContext.state === 'suspended') {
+                    console.log("AudioContext suspended, attempting resume...");
+                    await audioContext.resume();
+                }
+
+                audioContext.addEventListener('statechange', () => {
+                    console.log("AudioContext state changed to:", audioContext.state);
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume().then(() => {
+                            console.log("AudioContext resumed successfully");
+                        });
+                    }
+                });
+
+            } catch (error) {
+                console.error("Microphone setup failed:", error);
+                statusDisplay.textContent = "❌ Microphone error: " + error.message;
+                startMicBtn.disabled = false;
+                stopMicBtn.disabled = true;
+                
+                // Clean up if partially initialized
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+                if (audioProcessor) {
+                    audioProcessor.disconnect();
+                }
+            }
+        }
+
+        // Helper function (optional, since we're doing conversion inline now)
+        function convertFloat32ToInt16(buffer) {
+            const l = buffer.length;
+            const buf = new Int16Array(l);
+            for (let i = 0; i < l; i++) {
+                buf[i] = Math.min(32767, Math.max(-32768, buffer[i] * 32767));
+            }
+            return buf;
+        }
+        
+        // Stop microphone
+        function stopMicrophone() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            startMicBtn.disabled = false;
+            stopMicBtn.disabled = true;
+        }
+        
+        // Convert Float32 audio data to Int16
+        function convertFloat32ToInt16(buffer) {
+            const l = buffer.length;
+            const buf = new Int16Array(l);
+            for (let i = 0; i < l; i++) {
+                buf[i] = Math.min(1, buffer[i]) * 0x7FFF;
+            }
+            return buf;
+        }
+        
+        // Send text message
+        function sendTextMessage() {
             const text = textInput.value.trim();
-            if (text) {
-                addMessage(`You: ${text}`, "user-message");
-                ws.send(JSON.stringify({
-                    text: `SPEAK:${text}`
+            if (text && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'text',
+                    data: text
                 }));
                 textInput.value = '';
             }
-        });
+        }
         
+        // Event listeners
+        startWebcamBtn.addEventListener('click', startWebcam);
+        stopWebcamBtn.addEventListener('click', stopWebcam);
+        startMicBtn.addEventListener('click', startMicrophone);
+        stopMicBtn.addEventListener('click', stopMicrophone);
+        sendTextBtn.addEventListener('click', sendTextMessage);
         textInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendButton.click();
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendTextMessage();
             }
         });
+        
+        // Initialize
+        connectWebSocket();
     </script>
 </body>
 </html>
