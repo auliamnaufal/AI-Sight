@@ -194,7 +194,9 @@
             if (isConnected) return;
             
             try {
-                socket = new WebSocket(`ws://${window.location.hostname}:8000/ws`);
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
                 
                 socket.onopen = () => {
                     isConnected = true;
