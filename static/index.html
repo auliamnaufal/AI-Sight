@@ -257,12 +257,8 @@
                         echoCancellation: true,
                         noiseSuppression: true,
                         sampleRate: 16000
-                    }
-                });
-                
-                // Add audio tracks to our existing stream
-                audioStream.getAudioTracks().forEach(track => {
-                    mediaStream.addTrack(track);
+                    },
+                    video: false
                 });
                 
                 // Set up audio processing
@@ -270,7 +266,7 @@
                     sampleRate: 16000
                 });
                 
-                const source = audioContext.createMediaStreamSource(mediaStream);
+                const source = audioContext.createMediaStreamSource(audioStream);
                 audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
                 
                 // Audio processing
