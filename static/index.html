@@ -13,7 +13,7 @@
             background-color: #f5f5f5;
         }
         h1 {
-            color: #4285F4;
+            color: #4285f4;
             text-align: center;
         }
         .container {
@@ -32,7 +32,7 @@
             background: white;
             border-radius: 8px;
             padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         video, canvas {
             width: 100%;
@@ -49,7 +49,7 @@
         }
         button {
             padding: 10px 15px;
-            background: #4285F4;
+            background: #4285f4;
             color: white;
             border: none;
             border-radius: 4px;
@@ -59,10 +59,10 @@
             user-select: none;
         }
         button:hover {
-            background: #3367D6;
+            background: #3367d6;
         }
         button:active {
-            background: #2A56C6;
+            background: #2a56c6;
             transform: scale(0.98);
         }
         button:disabled {
@@ -84,6 +84,7 @@
             border-radius: 8px;
             min-height: 100px;
             border: 1px solid #ddd;
+            margin-top: 15px;
         }
         .status {
             padding: 10px;
@@ -92,46 +93,90 @@
             text-align: center;
         }
         .connected {
-            background: #E6F4EA;
+            background: #e6f4ea;
             color: #137333;
         }
         .disconnected {
-            background: #FCE8E6;
-            color: #D93025;
+            background: #fce8e6;
+            color: #d93025;
         }
         #recordButton {
-            background: #EA4335;
+            background: #ea4335;
             width: 100%;
             padding: 15px;
             font-size: 18px;
         }
         #recordButton:hover {
-            background: #D33426;
+            background: #d33426;
         }
         #recordButton:active {
-            background: #BB2A1D;
+            background: #bb2a1d;
         }
         #recordButton.recording {
             animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
-            0% { background-color: #EA4335; }
-            50% { background-color: #FF6D60; }
-            100% { background-color: #EA4335; }
+            0% { background-color: #ea4335; }
+            50% { background-color: #ff6d60; }
+            100% { background-color: #ea4335; }
         }
         .camera-status {
             margin-top: 10px;
             font-size: 14px;
             color: #666;
         }
+        .audio-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .audio-playing {
+            border-left: 4px solid #4285f4;
+            padding-left: 10px;
+            transition: all 0.3s;
+        }
+        .buffering {
+            position: relative;
+        }
+        .buffering::after {
+            content: "Buffering...";
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        .play-button {
+            width: 100%;
+            padding: 12px;
+            background: #34a853;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .play-button:hover {
+            background: #2d9248;
+        }
+        .audio-visualizer {
+            width: 100%;
+            height: 60px;
+            background: #f1f3f4;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-    <h1>AI-See</h1>
-    
+    <h1>AI-Sight</h1>
+
     <div class="container">
         <div class="status disconnected" id="connectionStatus">Disconnected</div>
-        
+
         <div class="media-container">
             <div class="media-box">
                 <h2>Camera Preview</h2>
@@ -141,8 +186,16 @@
                     <button id="recordButton">Hold to Record Audio & Video</button>
                 </div>
             </div>
+
+            <div class="media-box">
+                <h2>AI Response</h2>
+                <div class="audio-container" id="audioContainer">
+                    <div class="audio-visualizer" id="audioVisualizer"></div>
+                </div>
+                <div id="responseText"></div>
+            </div>
         </div>
-        
+
         <div class="media-box">
             <h2>Text Input</h2>
             <textarea id="textInput" placeholder="Type your message here..."></textarea>
@@ -161,240 +214,461 @@
         let audioProcessor = null;
         let webcamInterval = null;
         let isRecording = false;
-        let recordTimeout = null;
-        
+
+        // Audio playback management
+        let audioQueue = [];
+        let isPlaying = false;
+        let playbackAudioContext = null;
+        let audioBufferSource = null;
+        let audioAnalyser = null;
+        let visualizationInterval = null;
+        let currentAudioEndTime = 0;
+        let audioChunks = [];
+
         // DOM elements
-        const connectionStatus = document.getElementById('connectionStatus');
-        const cameraStatus = document.getElementById('cameraStatus');
-        const recordButton = document.getElementById('recordButton');
-        const sendTextBtn = document.getElementById('sendText');
-        const textInput = document.getElementById('textInput');
-        const responseText = document.getElementById('responseText');
-        const webcamVideo = document.getElementById('webcam');
-        const geminiAudio = document.getElementById('geminiAudio');
-        
+        const connectionStatus = document.getElementById("connectionStatus");
+        const cameraStatus = document.getElementById("cameraStatus");
+        const recordButton = document.getElementById("recordButton");
+        const sendTextBtn = document.getElementById("sendText");
+        const textInput = document.getElementById("textInput");
+        const responseText = document.getElementById("responseText");
+        const webcamVideo = document.getElementById("webcam");
+        const audioContainer = document.getElementById("audioContainer");
+        const audioVisualizer = document.getElementById("audioVisualizer");
+
         // Initialize camera preview
         async function initCameraPreview() {
             try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: true,
-                    audio: false // Only enable audio when recording
+                    audio: false,
                 });
                 webcamVideo.srcObject = mediaStream;
                 cameraStatus.textContent = "Camera active (preview only)";
-                console.log("Camera preview initialized");
             } catch (error) {
                 console.error("Error initializing camera preview:", error);
                 cameraStatus.textContent = "Camera error: " + error.message;
             }
         }
-        
+
         // Connect to WebSocket
         async function connectWebSocket() {
             if (isConnected) return;
-            
+
             try {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
                 socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
-                
                 socket.onopen = () => {
                     isConnected = true;
                     connectionStatus.textContent = "Connected";
                     connectionStatus.className = "status connected";
-                    console.log("WebSocket connected");
                 };
-                
+
                 socket.onclose = () => {
                     isConnected = false;
                     connectionStatus.textContent = "Disconnected";
                     connectionStatus.className = "status disconnected";
-                    console.log("WebSocket disconnected");
+                    setTimeout(connectWebSocket, 3000);
                 };
-                
+
                 socket.onerror = (error) => {
                     console.error("WebSocket error:", error);
                 };
-                
-                socket.onmessage = (event) => {
-                    const message = JSON.parse(event.data);
-                    
-                    if (message.type === 'audio') {
-                        // Convert the string back to bytes
-                        const byteString = atob(message.data);
-                        const bytes = new Uint8Array(byteString.length);
-                        for (let i = 0; i < byteString.length; i++) {
-                            bytes[i] = byteString.charCodeAt(i);
+
+                socket.onmessage = async (event) => {
+                    // Handle binary audio data
+                    if (event.data instanceof Blob) {
+                        try {
+                            const arrayBuffer = await event.data.arrayBuffer();
+                            handleAudioData(arrayBuffer);
+                        } catch (error) {
+                            console.error("Blob processing error:", error);
                         }
-                        
-                        // Create a blob and play it
-                        const blob = new Blob([bytes], { type: 'audio/wav' });
-                        const audioUrl = URL.createObjectURL(blob);
-                        geminiAudio.src = audioUrl;
-                        geminiAudio.play();
-                    } else if (message.type === 'text') {
-                        responseText.innerHTML += `<p>${message.data}</p>`;
+                    } 
+                    else if (event.data instanceof ArrayBuffer) {
+                        handleAudioData(event.data);
                     }
+                    // Handle text messages
+                    else if (typeof event.data === "string") {
+                        try {
+                            const message = JSON.parse(event.data);
+                            if (message.type === "text") {
+                                responseText.innerHTML += `<p>${message.data}</p>`;
+                                responseText.scrollTop = responseText.scrollHeight;
+                            }
+                        } catch (e) {
+                            console.error("Message parsing error:", e);
+                        }
+                    }
+                };
+            } catch (error) {
+                console.error("Error connecting to WebSocket:", error);
+                setTimeout(connectWebSocket, 3000);
+            }
+        }
+
+        function handleAudioData(arrayBuffer) {
+            // Convert to the correct audio format
+            const audioData = convertAudioDataIfNeeded(arrayBuffer);
+            
+            // Queue the audio data
+            audioQueue.push(audioData);
+            
+            // Start playback if we have enough buffered chunks
+            const MIN_BUFFERED_CHUNKS = 3;
+            if (audioQueue.length >= MIN_BUFFERED_CHUNKS && !isPlaying) {
+                processAudioQueue();
+            }
+            
+            // Update buffering state
+            updateBufferingState();
+        }
+
+        function convertAudioDataIfNeeded(buffer) {
+            // Check if the buffer has a WAV header
+            const header = new Uint8Array(buffer, 0, 4);
+            const isWav = header[0] === 0x52 && header[1] === 0x49 && 
+                         header[2] === 0x46 && header[3] === 0x46;
+            
+            if (isWav) {
+                return buffer;
+            }
+            
+            // Convert raw PCM to WAV format
+            return encodeRawPCMAsWAV(buffer, 1, 24000);
+        }
+
+        function encodeRawPCMAsWAV(buffer, numChannels, sampleRate) {
+            const bytesPerSample = 2;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = buffer.byteLength;
+            const fileSize = 36 + dataSize;
+            
+            const wavHeader = new ArrayBuffer(44);
+            const view = new DataView(wavHeader);
+            
+            // Write WAV header
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, fileSize, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+            
+            // Combine header and PCM data
+            const wavBuffer = new Uint8Array(wavHeader.byteLength + buffer.byteLength);
+            wavBuffer.set(new Uint8Array(wavHeader), 0);
+            wavBuffer.set(new Uint8Array(buffer), wavHeader.byteLength);
+            
+            return wavBuffer.buffer;
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        async function processAudioQueue() {
+            if (audioQueue.length === 0) {
+                isPlaying = false;
+                stopAudioVisualization();
+                audioContainer.classList.remove("audio-playing");
+                currentAudioEndTime = 0;
+                updateBufferingState();
+                return;
+            }
+            
+            // Don't start new playback if previous audio hasn't finished
+            const now = playbackAudioContext ? playbackAudioContext.currentTime : 0;
+            if (now < currentAudioEndTime) {
+                return;
+            }
+            
+            isPlaying = true;
+            audioContainer.classList.add("audio-playing");
+            updateBufferingState();
+            
+            try {
+                // Initialize audio context if needed
+                if (!playbackAudioContext) {
+                    playbackAudioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: 24000,
+                    });
+                    
+                    audioAnalyser = playbackAudioContext.createAnalyser();
+                    audioAnalyser.fftSize = 64;
+                }
+                
+                // Get the next chunk of audio
+                const audioData = audioQueue.shift();
+                
+                // Decode the audio data
+                const audioBuffer = await playbackAudioContext.decodeAudioData(audioData);
+                const duration = audioBuffer.duration;
+                
+                // Create and configure audio source
+                if (audioBufferSource) {
+                    audioBufferSource.stop();
+                    audioBufferSource.disconnect();
+                }
+                
+                audioBufferSource = playbackAudioContext.createBufferSource();
+                audioBufferSource.buffer = audioBuffer;
+                
+                // Connect to analyzer and destination
+                audioBufferSource.connect(audioAnalyser);
+                audioAnalyser.connect(playbackAudioContext.destination);
+                
+                // Start visualization
+                startAudioVisualization();
+                
+                // Schedule playback with precise timing
+                const startTime = Math.max(playbackAudioContext.currentTime, currentAudioEndTime);
+                audioBufferSource.start(startTime);
+                currentAudioEndTime = startTime + duration;
+                
+                // When this chunk finishes, play the next one
+                audioBufferSource.onended = () => {
+                    setTimeout(() => {
+                        processAudioQueue();
+                    }, 30); // Small delay between chunks
                 };
                 
             } catch (error) {
-                console.error("Error connecting to WebSocket:", error);
+                console.error("Audio playback error:", error);
+                setTimeout(() => {
+                    processAudioQueue();
+                }, 100);
             }
         }
+
+        function updateBufferingState() {
+            if (audioQueue.length < 2) {
+                audioContainer.classList.add("buffering");
+            } else {
+                audioContainer.classList.remove("buffering");
+            }
+        }
+
+        function startAudioVisualization() {
+            stopAudioVisualization();
+            
+            const bufferLength = audioAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            const canvas = document.createElement('canvas');
+            canvas.width = audioVisualizer.clientWidth;
+            canvas.height = audioVisualizer.clientHeight;
+            audioVisualizer.innerHTML = '';
+            audioVisualizer.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            
+            visualizationInterval = setInterval(() => {
+                audioAnalyser.getByteFrequencyData(dataArray);
+                
+                ctx.fillStyle = 'rgb(200, 200, 200)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const barWidth = (canvas.width / bufferLength) * 2.5;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = dataArray[i] / 2;
+                    ctx.fillStyle = `rgb(66, 133, 244)`;
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }, 50);
+        }
         
+        function stopAudioVisualization() {
+            if (visualizationInterval) {
+                clearInterval(visualizationInterval);
+                visualizationInterval = null;
+            }
+            audioVisualizer.innerHTML = '';
+        }
+
         // Start media recording
         async function startMediaRecording() {
             if (isRecording) return;
-            
+
             try {
                 isRecording = true;
-                recordButton.classList.add('recording');
+                recordButton.classList.add("recording");
                 cameraStatus.textContent = "Recording audio & video...";
-                
-                // Add audio to existing media stream
-                const audioStream = await navigator.mediaDevices.getUserMedia({ 
+
+                // Add audio to media stream
+                const audioStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
-                        sampleRate: 16000
+                        sampleRate: 16000,
                     },
-                    video: false
+                    video: false,
                 });
-                
+
                 // Set up audio processing
                 audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                    sampleRate: 16000
+                    sampleRate: 16000,
                 });
-                
+
                 const source = audioContext.createMediaStreamSource(audioStream);
                 audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
-                
-                // Audio processing
+
+                // Process audio chunks
                 audioProcessor.onaudioprocess = (event) => {
                     if (!isRecording || !isConnected || !socket || socket.readyState !== WebSocket.OPEN) return;
-                    
+
                     const inputData = event.inputBuffer.getChannelData(0);
                     const pcmData = new Int16Array(inputData.length);
                     for (let i = 0; i < inputData.length; i++) {
                         pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32767));
                     }
-                    
+
                     try {
                         socket.send(JSON.stringify({
-                            type: 'audio',
+                            type: "audio",
                             data: Array.from(pcmData),
                             sampleRate: audioContext.sampleRate,
-                            timestamp: Date.now()
                         }));
                     } catch (error) {
                         console.error("Error sending audio:", error);
                     }
                 };
-                
+
                 source.connect(audioProcessor);
                 audioProcessor.connect(audioContext.destination);
-                
-                // Start sending video frames
+
+                // Send video frames periodically
                 webcamInterval = setInterval(() => {
                     if (!isRecording || !isConnected) return;
-                    
+
                     try {
-                        const canvas = document.createElement('canvas');
+                        const canvas = document.createElement("canvas");
                         canvas.width = webcamVideo.videoWidth;
                         canvas.height = webcamVideo.videoHeight;
-                        const ctx = canvas.getContext('2d');
+                        const ctx = canvas.getContext("2d");
                         ctx.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
-                        
+
                         canvas.toBlob((blob) => {
                             const reader = new FileReader();
                             reader.onload = () => {
-                                const base64data = reader.result.split(',')[1];
+                                const base64data = reader.result.split(",")[1];
                                 socket.send(JSON.stringify({
-                                    type: 'image',
+                                    type: "image",
                                     data: base64data,
-                                    timestamp: Date.now()
                                 }));
                             };
                             reader.readAsDataURL(blob);
-                        }, 'image/jpeg', 0.7);
+                        }, "image/jpeg", 0.7);
                     } catch (error) {
                         console.error("Error capturing webcam frame:", error);
                     }
-                }, 500); // Send every 500ms
-                
+                }, 500);
             } catch (error) {
                 console.error("Error starting media recording:", error);
                 stopMediaRecording();
             }
         }
-        
+
         // Stop media recording
         function stopMediaRecording() {
             if (!isRecording) return;
-            
+
             isRecording = false;
-            recordButton.classList.remove('recording');
+            recordButton.classList.remove("recording");
             cameraStatus.textContent = "Camera active (preview only)";
-            
-            // Stop audio processing
+
             if (audioProcessor) {
                 audioProcessor.disconnect();
                 audioProcessor = null;
             }
-            
-            // Stop audio tracks
+
             if (mediaStream) {
-                mediaStream.getAudioTracks().forEach(track => track.stop());
+                mediaStream.getAudioTracks().forEach((track) => track.stop());
             }
-            
-            // Stop sending video frames
+
             if (webcamInterval) {
                 clearInterval(webcamInterval);
                 webcamInterval = null;
             }
-            
-            // Reinitialize camera preview (video only)
-            if (!mediaStream.getVideoTracks().some(track => track.readyState === 'live')) {
+
+            if (mediaStream && !mediaStream.getVideoTracks().some((track) => track.readyState === "live")) {
                 initCameraPreview();
             }
         }
-        
+
+        // Clean up audio playback
+        function cleanupAudioPlayback() {
+            if (audioBufferSource) {
+                audioBufferSource.stop();
+                audioBufferSource.disconnect();
+                audioBufferSource = null;
+            }
+            if (playbackAudioContext) {
+                playbackAudioContext.close().catch(e => console.log("AudioContext close error:", e));
+                playbackAudioContext = null;
+            }
+            audioQueue = [];
+            isPlaying = false;
+            stopAudioVisualization();
+            audioContainer.classList.remove("audio-playing");
+            currentAudioEndTime = 0;
+        }
+
         // Send text message
         function sendTextMessage() {
             const text = textInput.value.trim();
             if (text && socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({
-                    type: 'text',
-                    data: text
+                    type: "text",
+                    data: text,
                 }));
-                textInput.value = '';
+                textInput.value = "";
             }
         }
-        
+
         // Event listeners
-        recordButton.addEventListener('mousedown', startMediaRecording);
-        recordButton.addEventListener('mouseup', stopMediaRecording);
-        recordButton.addEventListener('mouseleave', stopMediaRecording);
-        
-        // For touch devices
-        recordButton.addEventListener('touchstart', (e) => {
+        recordButton.addEventListener("mousedown", startMediaRecording);
+        recordButton.addEventListener("mouseup", stopMediaRecording);
+        recordButton.addEventListener("mouseleave", stopMediaRecording);
+
+        recordButton.addEventListener("touchstart", (e) => {
             e.preventDefault();
             startMediaRecording();
         });
-        
-        recordButton.addEventListener('touchend', (e) => {
+
+        recordButton.addEventListener("touchend", (e) => {
             e.preventDefault();
             stopMediaRecording();
         });
-        
-        sendTextBtn.addEventListener('click', sendTextMessage);
-        textInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+
+        sendTextBtn.addEventListener("click", sendTextMessage);
+        textInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 sendTextMessage();
             }
         });
-        
+
+        // Handle page visibility changes
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                stopMediaRecording();
+                cleanupAudioPlayback();
+            }
+        });
+
         // Initialize
         initCameraPreview();
         connectWebSocket();

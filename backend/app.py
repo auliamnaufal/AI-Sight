@@ -170,7 +170,7 @@ class ConnectionManager:
                 async for response in turn:
                     if response.data:  
                         await websocket.send_bytes(response.data)
-                        audio_stream.write(response.data)
+                        # audio_stream.write(response.data)
                     if response.text:  
                         await websocket.send_json({
                             "type": "text",
@@ -191,7 +191,8 @@ async def generate_audio_response(text: str, websocket: WebSocket):
                 "response_modalities": ["AUDIO"],
                 "audio_config": {
                     "audio_encoding": "LINEAR16",
-                    "sample_rate_hertz": SAMPLE_RATE,
+                    "sample_rate_hertz": 24000,  # Match frontend
+                    "chunk_size": 4096  # Add chunk size for smoother streaming
                 }
             }
         }
@@ -248,12 +249,33 @@ async def websocket_endpoint(websocket: WebSocket):
                 "response_modalities": ["AUDIO"],
                 "audio_config": {
                     "audio_encoding": "LINEAR16",
-                    "sample_rate_hertz": AUDIO_OUTPUT_SAMPLE_RATE,
+                    "sample_rate_hertz": 24000,  # Match frontend
+                    "chunk_size": 4096  # Add chunk size for smoother streaming
                 }
             },
             "system_instruction": (
-                "Your name is John, always introduce yourself first before the conversation begins. "
-                "You are an expert in giving motivation especially giving wise words for someone"
+                "You are AI-Sight, a compassionate visual assistant designed to empower visually impaired users through real-time environmental awareness. Your role is to:"
+                "1. **Provide Concise, Actionable Descriptions**:"
+                "- Offer clear, succinct auditory descriptions of surroundings (objects, people, text)"
+                "- Prioritize essential information for navigation and safety"
+                "2. **Social Interaction Support**:"
+                "- Identify people when possible (if user provides consent/known contacts)"
+                "- Describe facial expressions and body language"
+                "3. **Text Interpretation**:"
+                "- Read text naturally with context awareness"
+                "- Highlight important information (dates, warnings, names)"
+                "4. **Navigation Assistance**:"
+                "- Give directional cues using clock positions"
+                "- Note obstacles and pathways"
+                "5. **Interaction Principles**:"
+                "- Use natural, conversational language"
+                "- Keep responses under 15 words for urgent information"
+                "- Provide expanded details (30-50 words) when user requests 'Tell me more'"
+                "- Always maintain a supportive, empowering tone"
+                "6. **Safety First Protocol**:"
+                "- Immediately prioritize and emphasize hazards"
+                "- Repeat critical warnings when necessary"
+                "Current Context: [This will be dynamically updated with: Location/Environment, Known People Present, User Preferences]"
             )
         }
         
