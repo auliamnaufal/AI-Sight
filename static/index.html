@@ -55,9 +55,15 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            transition: all 0.2s;
+            user-select: none;
         }
         button:hover {
             background: #3367D6;
+        }
+        button:active {
+            background: #2A56C6;
+            transform: scale(0.98);
         }
         button:disabled {
             background: #cccccc;
@@ -93,6 +99,31 @@
             background: #FCE8E6;
             color: #D93025;
         }
+        #recordButton {
+            background: #EA4335;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+        }
+        #recordButton:hover {
+            background: #D33426;
+        }
+        #recordButton:active {
+            background: #BB2A1D;
+        }
+        #recordButton.recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { background-color: #EA4335; }
+            50% { background-color: #FF6D60; }
+            100% { background-color: #EA4335; }
+        }
+        .camera-status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -103,20 +134,11 @@
         
         <div class="media-container">
             <div class="media-box">
-                <h2>Webcam</h2>
+                <h2>Camera Preview</h2>
                 <video id="webcam" autoplay playsinline></video>
+                <div class="camera-status" id="cameraStatus">Camera inactive</div>
                 <div class="controls">
-                    <button id="startWebcam">Start Webcam</button>
-                    <button id="stopWebcam" disabled>Stop Webcam</button>
-                </div>
-            </div>
-            
-            <div class="media-box">
-                <h2>Microphone</h2>
-                <audio id="audioOutput" controls></audio>
-                <div class="controls">
-                    <button id="startMic">Start Microphone</button>
-                    <button id="stopMic" disabled>Stop Microphone</button>
+                    <button id="recordButton">Hold to Record Audio & Video</button>
                 </div>
             </div>
         </div>
@@ -128,35 +150,44 @@
                 <button id="sendText">Send Message</button>
             </div>
         </div>
-        
-        <div class="media-box">
-            <h2>Gemini Response</h2>
-            <div id="responseText"></div>
-            <audio id="geminiAudio" controls></audio>
-        </div>
     </div>
 
     <script>
         // WebSocket and state management
         let socket = null;
-        let clientId = Math.random().toString(36).substring(2, 15);
         let isConnected = false;
         let mediaStream = null;
         let audioContext = null;
         let audioProcessor = null;
         let webcamInterval = null;
+        let isRecording = false;
+        let recordTimeout = null;
         
         // DOM elements
         const connectionStatus = document.getElementById('connectionStatus');
-        const startWebcamBtn = document.getElementById('startWebcam');
-        const stopWebcamBtn = document.getElementById('stopWebcam');
-        const startMicBtn = document.getElementById('startMic');
-        const stopMicBtn = document.getElementById('stopMic');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const recordButton = document.getElementById('recordButton');
         const sendTextBtn = document.getElementById('sendText');
         const textInput = document.getElementById('textInput');
         const responseText = document.getElementById('responseText');
         const webcamVideo = document.getElementById('webcam');
         const geminiAudio = document.getElementById('geminiAudio');
+        
+        // Initialize camera preview
+        async function initCameraPreview() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true,
+                    audio: false // Only enable audio when recording
+                });
+                webcamVideo.srcObject = mediaStream;
+                cameraStatus.textContent = "Camera active (preview only)";
+                console.log("Camera preview initialized");
+            } catch (error) {
+                console.error("Error initializing camera preview:", error);
+                cameraStatus.textContent = "Camera error: " + error.message;
+            }
+        }
         
         // Connect to WebSocket
         async function connectWebSocket() {
@@ -209,17 +240,65 @@
             }
         }
         
-        // Start webcam
-        async function startWebcam() {
+        // Start media recording
+        async function startMediaRecording() {
+            if (isRecording) return;
+            
             try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                webcamVideo.srcObject = mediaStream;
-                startWebcamBtn.disabled = true;
-                stopWebcamBtn.disabled = false;
+                isRecording = true;
+                recordButton.classList.add('recording');
+                cameraStatus.textContent = "Recording audio & video...";
                 
-                // Start sending frames periodically
-                webcamInterval = setInterval(async () => {
-                    if (!isConnected) return;
+                // Add audio to existing media stream
+                const audioStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 16000
+                    }
+                });
+                
+                // Add audio tracks to our existing stream
+                audioStream.getAudioTracks().forEach(track => {
+                    mediaStream.addTrack(track);
+                });
+                
+                // Set up audio processing
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 16000
+                });
+                
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                // Audio processing
+                audioProcessor.onaudioprocess = (event) => {
+                    if (!isRecording || !isConnected || !socket || socket.readyState !== WebSocket.OPEN) return;
+                    
+                    const inputData = event.inputBuffer.getChannelData(0);
+                    const pcmData = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32767));
+                    }
+                    
+                    try {
+                        socket.send(JSON.stringify({
+                            type: 'audio',
+                            data: Array.from(pcmData),
+                            sampleRate: audioContext.sampleRate,
+                            timestamp: Date.now()
+                        }));
+                    } catch (error) {
+                        console.error("Error sending audio:", error);
+                    }
+                };
+                
+                source.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                
+                // Start sending video frames
+                webcamInterval = setInterval(() => {
+                    if (!isRecording || !isConnected) return;
                     
                     try {
                         const canvas = document.createElement('canvas');
@@ -228,15 +307,15 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
                         
-                        // Convert to JPEG and send
-                        canvas.toBlob(async (blob) => {
+                        canvas.toBlob((blob) => {
                             const reader = new FileReader();
                             reader.onload = () => {
                                 const base64data = reader.result.split(',')[1];
-                                    socket.send(JSON.stringify({
-                                        type: 'image',
-                                        data: base64data
-                                    }));
+                                socket.send(JSON.stringify({
+                                    type: 'image',
+                                    data: base64data,
+                                    timestamp: Date.now()
+                                }));
                             };
                             reader.readAsDataURL(blob);
                         }, 'image/jpeg', 0.7);
@@ -246,166 +325,40 @@
                 }, 500); // Send every 500ms
                 
             } catch (error) {
-                console.error("Error accessing webcam:", error);
+                console.error("Error starting media recording:", error);
+                stopMediaRecording();
             }
         }
         
-        // Stop webcam
-        function stopWebcam() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                webcamVideo.srcObject = null;
-                mediaStream = null;
-            }
-            if (webcamInterval) {
-                clearInterval(webcamInterval);
-                webcamInterval = null;
-            }
-            startWebcamBtn.disabled = false;
-            stopWebcamBtn.disabled = true;
-        }
-        
-        // Start microphone
-        async function startMicrophone() {
-            try {
-                console.log("Requesting microphone access...");
-                mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        sampleRate: 16000
-                    },
-                    video: false
-                });
-                console.log("Microphone access granted");
-
-                // UI updates
-                startMicBtn.disabled = true;
-                stopMicBtn.disabled = false;
-                // statusDisplay.textContent = "🎤 Microphone active - Speak now";
-
-                // Audio context setup
-                audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                    sampleRate: 16000
-                });
-                console.log("AudioContext created, sample rate:", audioContext.sampleRate);
-
-                const source = audioContext.createMediaStreamSource(mediaStream);
-                console.log("MediaStreamSource created");
-
-                // Processor setup
-                const BUFFER_SIZE = 4096;
-                audioProcessor = audioContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
-                console.log("ScriptProcessor created with buffer size:", BUFFER_SIZE);
-
-                // Audio processing
-                audioProcessor.onaudioprocess = (event) => {
-                    if (!isConnected) {
-                        console.warn("Not connected - skipping audio processing");
-                        return;
-                    }
-
-                    if (!socket || socket.readyState !== WebSocket.OPEN) {
-                        console.warn("WebSocket not ready - skipping audio send");
-                        return;
-                    }
-
-                    const inputData = event.inputBuffer.getChannelData(0);
-                    console.debug("Processing audio frame with", inputData.length, "samples");
-
-                    // Convert to 16-bit PCM
-                    const pcmData = new Int16Array(inputData.length);
-                    for (let i = 0; i < inputData.length; i++) {
-                        pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32767));
-                    }
-
-                    // Send immediately (remove if you want chunking)
-                    try {
-                        const audioMessage = {
-                            type: 'audio',
-                            data: Array.from(pcmData),
-                            sampleRate: audioContext.sampleRate,
-                            timestamp: Date.now()
-                        };
-                        socket.send(JSON.stringify(audioMessage));
-                        console.debug("Sent audio chunk with", pcmData.length, "samples");
-                    } catch (error) {
-                        console.error("Error sending audio:", error);
-                    }
-                };
-
-                // Connect nodes
-                source.connect(audioProcessor);
-                audioProcessor.connect(audioContext.destination);
-                console.log("Audio nodes connected");
-
-                // Handle suspended state
-                if (audioContext.state === 'suspended') {
-                    console.log("AudioContext suspended, attempting resume...");
-                    await audioContext.resume();
-                }
-
-                audioContext.addEventListener('statechange', () => {
-                    console.log("AudioContext state changed to:", audioContext.state);
-                    if (audioContext.state === 'suspended') {
-                        audioContext.resume().then(() => {
-                            console.log("AudioContext resumed successfully");
-                        });
-                    }
-                });
-
-            } catch (error) {
-                console.error("Microphone setup failed:", error);
-                statusDisplay.textContent = "❌ Microphone error: " + error.message;
-                startMicBtn.disabled = false;
-                stopMicBtn.disabled = true;
-                
-                // Clean up if partially initialized
-                if (mediaStream) {
-                    mediaStream.getTracks().forEach(track => track.stop());
-                }
-                if (audioProcessor) {
-                    audioProcessor.disconnect();
-                }
-            }
-        }
-
-        // Helper function (optional, since we're doing conversion inline now)
-        function convertFloat32ToInt16(buffer) {
-            const l = buffer.length;
-            const buf = new Int16Array(l);
-            for (let i = 0; i < l; i++) {
-                buf[i] = Math.min(32767, Math.max(-32768, buffer[i] * 32767));
-            }
-            return buf;
-        }
-        
-        // Stop microphone
-        function stopMicrophone() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
+        // Stop media recording
+        function stopMediaRecording() {
+            if (!isRecording) return;
+            
+            isRecording = false;
+            recordButton.classList.remove('recording');
+            cameraStatus.textContent = "Camera active (preview only)";
+            
+            // Stop audio processing
             if (audioProcessor) {
                 audioProcessor.disconnect();
                 audioProcessor = null;
             }
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
+            
+            // Stop audio tracks
+            if (mediaStream) {
+                mediaStream.getAudioTracks().forEach(track => track.stop());
             }
-            startMicBtn.disabled = false;
-            stopMicBtn.disabled = true;
-        }
-        
-        // Convert Float32 audio data to Int16
-        function convertFloat32ToInt16(buffer) {
-            const l = buffer.length;
-            const buf = new Int16Array(l);
-            for (let i = 0; i < l; i++) {
-                buf[i] = Math.min(1, buffer[i]) * 0x7FFF;
+            
+            // Stop sending video frames
+            if (webcamInterval) {
+                clearInterval(webcamInterval);
+                webcamInterval = null;
             }
-            return buf;
+            
+            // Reinitialize camera preview (video only)
+            if (!mediaStream.getVideoTracks().some(track => track.readyState === 'live')) {
+                initCameraPreview();
+            }
         }
         
         // Send text message
@@ -421,10 +374,21 @@
         }
         
         // Event listeners
-        startWebcamBtn.addEventListener('click', startWebcam);
-        stopWebcamBtn.addEventListener('click', stopWebcam);
-        startMicBtn.addEventListener('click', startMicrophone);
-        stopMicBtn.addEventListener('click', stopMicrophone);
+        recordButton.addEventListener('mousedown', startMediaRecording);
+        recordButton.addEventListener('mouseup', stopMediaRecording);
+        recordButton.addEventListener('mouseleave', stopMediaRecording);
+        
+        // For touch devices
+        recordButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startMediaRecording();
+        });
+        
+        recordButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopMediaRecording();
+        });
+        
         sendTextBtn.addEventListener('click', sendTextMessage);
         textInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -434,6 +398,7 @@
         });
         
         // Initialize
+        initCameraPreview();
         connectWebSocket();
     </script>
 </body>
