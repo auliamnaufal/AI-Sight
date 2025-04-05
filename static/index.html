@@ -4,214 +4,63 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI-Sight</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #f5f5f5;
-      }
-      h1 {
-        color: #4285f4;
-        text-align: center;
-      }
-      .container {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-      .media-container {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-      }
-      .media-box {
-        flex: 1;
-        min-width: 300px;
-        background: white;
-        border-radius: 8px;
-        padding: 15px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      video,
-      canvas {
-        width: 100%;
-        border-radius: 4px;
-        background: #333;
-      }
-      audio {
-        width: 100%;
-      }
-      .controls {
-        display: flex;
-        gap: 10px;
-        margin-top: 10px;
-      }
-      button {
-        padding: 10px 15px;
-        background: #4285f4;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: all 0.2s;
-        user-select: none;
-      }
-      button:hover {
-        background: #3367d6;
-      }
-      button:active {
-        background: #2a56c6;
-        transform: scale(0.98);
-      }
-      button:disabled {
-        background: #cccccc;
-        cursor: not-allowed;
-      }
-      #textInput {
-        width: 100%;
-        padding: 10px;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-        font-size: 16px;
-        resize: vertical;
-        min-height: 60px;
-      }
-      #responseText {
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        min-height: 100px;
-        border: 1px solid #ddd;
-        margin-top: 15px;
-      }
-      .status {
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        text-align: center;
-      }
-      .connected {
-        background: #e6f4ea;
-        color: #137333;
-      }
-      .disconnected {
-        background: #fce8e6;
-        color: #d93025;
-      }
-      #recordButton {
-        background: #ea4335;
-        width: 100%;
-        padding: 15px;
-        font-size: 18px;
-      }
-      #recordButton:hover {
-        background: #d33426;
-      }
-      #recordButton:active {
-        background: #bb2a1d;
-      }
-      #recordButton.recording {
-        animation: pulse 1.5s infinite;
-      }
-      @keyframes pulse {
-        0% {
-          background-color: #ea4335;
-        }
-        50% {
-          background-color: #ff6d60;
-        }
-        100% {
-          background-color: #ea4335;
-        }
-      }
-      .camera-status {
-        margin-top: 10px;
-        font-size: 14px;
-        color: #666;
-      }
-      .audio-container {
-        margin-top: 15px;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #ddd;
-      }
-      .audio-playing {
-        border-left: 4px solid #4285f4;
-        padding-left: 10px;
-        transition: all 0.3s;
-      }
-      .buffering {
-        position: relative;
-      }
-      .buffering::after {
-        content: "Buffering...";
-        position: absolute;
-        right: 15px;
-        top: 15px;
-        color: #666;
-        font-size: 14px;
-      }
-      .play-button {
-        width: 100%;
-        padding: 12px;
-        background: #34a853;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 16px;
-        cursor: pointer;
-        margin-top: 10px;
-      }
-      .play-button:hover {
-        background: #2d9248;
-      }
-      .audio-visualizer {
-        width: 100%;
-        height: 60px;
-        background: #f1f3f4;
-        margin-top: 10px;
-        border-radius: 4px;
-      }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   </head>
-  <body>
-    <h1>AI-Sight</h1>
+  <body class="h-screen w-screen overflow-hidden relative">
+    <video
+      id="webcam"
+      autoplay
+      playsinline
+      class="absolute top-0 left-0 w-screen h-screen object-cover -z-10"></video>
 
-    <div class="container">
-      <div class="status disconnected" id="connectionStatus">Disconnected</div>
-
-      <div class="media-container">
-        <div class="media-box">
-          <h2>Camera Preview</h2>
-          <video id="webcam" autoplay playsinline></video>
-          <div class="camera-status" id="cameraStatus">Camera inactive</div>
-          <div class="controls">
-            <button id="recordButton">Hold to Record Audio & Video</button>
-          </div>
+    <div class="max-w-md m-auto h-screen relative">
+      <header class="absolute top-0 left-0 w-full px-6 py-4 flex justify-between items-center z-50">
+        <!-- Left icon -->
+        <button class="w-14 h-14">
+          <!-- Replace with your Discord icon (e.g., from Lucide, Heroicons, or SVG) -->
+          <!-- <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
+          </svg> -->
+        </button>
+      
+        <!-- Center logo -->
+        <div class="bg-[#34464D] px-8 py-3 rounded-[20px] border-2 border-white">
+          <h1 class="text-white text-3xl font-bold">AI-Sight</h1>
         </div>
+      
+        <!-- Right icon -->
+        <button class="w-14 h-14 flex items-center justify-center rounded-full border-2 border-white text-white">
+          <!-- Info icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 12h.01M12 16h.01" />
+          </svg>
+        </button>
+      </header>
+      
 
-        <div class="media-box">
-          <h2>AI Response</h2>
-          <div class="audio-container" id="audioContainer">
-            <div class="audio-visualizer" id="audioVisualizer"></div>
-          </div>
-          <div id="responseText"></div>
+      <div
+        class="absolute inset-0 -top-[20%] flex items-center justify-center pointer-events-none">
+        <div class="w-[300px] h-[300px] relative">
+          <!-- Top-left -->
+          <div
+            class="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white rounded-tl-[40px]"></div>
+          <!-- Top-right -->
+          <div
+            class="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white rounded-tr-[40px]"></div>
+          <!-- Bottom-left -->
+          <div
+            class="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white rounded-bl-[40px]"></div>
+          <!-- Bottom-right -->
+          <div
+            class="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white rounded-br-[40px]"></div>
         </div>
       </div>
 
-      <div class="media-box">
-        <h2>Text Input</h2>
-        <textarea
-          id="textInput"
-          placeholder="Type your message here..."></textarea>
-        <div class="controls">
-          <button id="sendText">Send Message</button>
-        </div>
-      </div>
+      <button
+        id="recordButton"
+        class="absolute inset-x-1/2 -translate-x-1/2 bottom-14 w-[80%] h-40 px-3 py-2 bg-white rounded-2xl shadow-black">
+        Hold to Record Audio & Video
+      </button>
     </div>
 
     <script>
@@ -236,7 +85,7 @@
 
       // DOM elements
       const connectionStatus = document.getElementById("connectionStatus");
-      const cameraStatus = document.getElementById("cameraStatus");
+      // const cameraStatus = document.getElementById("cameraStatus");
       const recordButton = document.getElementById("recordButton");
       const sendTextBtn = document.getElementById("sendText");
       const textInput = document.getElementById("textInput");
@@ -255,10 +104,10 @@
             },
           });
           webcamVideo.srcObject = mediaStream;
-          cameraStatus.textContent = "Camera active (preview only)";
+          // cameraStatus.textContent = "Camera active (preview only)";
         } catch (error) {
           console.error("Error initializing camera preview:", error);
-          cameraStatus.textContent = "Camera error: " + error.message;
+          // cameraStatus.textContent = "Camera error: " + error.message;
         }
       }
 
@@ -273,14 +122,10 @@
 
           socket.onopen = () => {
             isConnected = true;
-            connectionStatus.textContent = "Connected";
-            connectionStatus.className = "status connected";
           };
 
           socket.onclose = () => {
             isConnected = false;
-            connectionStatus.textContent = "Disconnected";
-            connectionStatus.className = "status disconnected";
             setTimeout(connectWebSocket, 3000);
           };
 
@@ -333,7 +178,6 @@
         }
 
         // Update buffering state
-        updateBufferingState();
       }
 
       function convertAudioDataIfNeeded(buffer) {
@@ -397,10 +241,7 @@
       async function processAudioQueue() {
         if (audioQueue.length === 0) {
           isPlaying = false;
-          stopAudioVisualization();
-          audioContainer.classList.remove("audio-playing");
           currentAudioEndTime = 0;
-          updateBufferingState();
           return;
         }
 
@@ -411,8 +252,6 @@
         }
 
         isPlaying = true;
-        audioContainer.classList.add("audio-playing");
-        updateBufferingState();
 
         try {
           // Initialize audio context if needed
@@ -448,9 +287,6 @@
           audioBufferSource.connect(audioAnalyser);
           audioAnalyser.connect(playbackAudioContext.destination);
 
-          // Start visualization
-          startAudioVisualization();
-
           // Schedule playback with precise timing
           const startTime = Math.max(
             playbackAudioContext.currentTime,
@@ -472,53 +308,6 @@
           }, 100);
         }
       }
-
-      function updateBufferingState() {
-        if (audioQueue.length < 2) {
-          audioContainer.classList.add("buffering");
-        } else {
-          audioContainer.classList.remove("buffering");
-        }
-      }
-
-      function startAudioVisualization() {
-        stopAudioVisualization();
-
-        const bufferLength = audioAnalyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        const canvas = document.createElement("canvas");
-        canvas.width = audioVisualizer.clientWidth;
-        canvas.height = audioVisualizer.clientHeight;
-        audioVisualizer.innerHTML = "";
-        audioVisualizer.appendChild(canvas);
-        const ctx = canvas.getContext("2d");
-
-        visualizationInterval = setInterval(() => {
-          audioAnalyser.getByteFrequencyData(dataArray);
-
-          ctx.fillStyle = "rgb(200, 200, 200)";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          const barWidth = (canvas.width / bufferLength) * 2.5;
-          let x = 0;
-
-          for (let i = 0; i < bufferLength; i++) {
-            const barHeight = dataArray[i] / 2;
-            ctx.fillStyle = `rgb(66, 133, 244)`;
-            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-            x += barWidth + 1;
-          }
-        }, 50);
-      }
-
-      function stopAudioVisualization() {
-        if (visualizationInterval) {
-          clearInterval(visualizationInterval);
-          visualizationInterval = null;
-        }
-        audioVisualizer.innerHTML = "";
-      }
-
       // Start media recording
       async function startMediaRecording() {
         if (isRecording) return;
@@ -526,7 +315,7 @@
         try {
           isRecording = true;
           recordButton.classList.add("recording");
-          cameraStatus.textContent = "Recording audio & video...";
+          // cameraStatus.textContent = "Recording audio & video...";
 
           // Add audio to media stream
           const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -627,7 +416,7 @@
 
         isRecording = false;
         recordButton.classList.remove("recording");
-        cameraStatus.textContent = "Camera active (preview only)";
+        // cameraStatus.textContent = "Camera active (preview only)";
 
         if (audioProcessor) {
           audioProcessor.disconnect();
@@ -668,8 +457,6 @@
         }
         audioQueue = [];
         isPlaying = false;
-        stopAudioVisualization();
-        audioContainer.classList.remove("audio-playing");
         currentAudioEndTime = 0;
       }
 
@@ -702,13 +489,13 @@
         stopMediaRecording();
       });
 
-      sendTextBtn.addEventListener("click", sendTextMessage);
-      textInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendTextMessage();
-        }
-      });
+      // sendTextBtn.addEventListener("click", sendTextMessage);
+      // textInput.addEventListener("keypress", (e) => {
+      //   if (e.key === "Enter" && !e.shiftKey) {
+      //     e.preventDefault();
+      //     sendTextMessage();
+      //   }
+      // });
 
       // Handle page visibility changes
       document.addEventListener("visibilitychange", () => {
