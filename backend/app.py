@@ -1,6 +1,7 @@
 import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles 
+from fastapi.responses import FileResponse
 from google import genai
 from backend.settings import get_settings
 import logging
@@ -10,6 +11,7 @@ import base64
 import json
 import numpy as np
 from enum import Enum
+from fastapi.middleware.cors import CORSMiddleware
 
 class InputType(str, Enum):
     TEXT = "text"
@@ -27,7 +29,10 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-from fastapi.middleware.cors import CORSMiddleware
+@app.get("/")
+def read_root():
+    return FileResponse("static/index.html")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
