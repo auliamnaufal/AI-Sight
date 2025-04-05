@@ -14,7 +14,8 @@
       class="absolute top-0 left-0 w-screen h-screen object-cover -z-10"></video>
 
     <div class="max-w-md m-auto h-screen relative">
-      <header class="absolute top-0 left-0 w-full px-6 py-4 flex justify-between items-center z-50">
+      <header
+        class="absolute top-0 left-0 w-full px-6 py-4 flex justify-between items-center z-50">
         <!-- Left icon -->
         <button class="w-14 h-14">
           <!-- Replace with your Discord icon (e.g., from Lucide, Heroicons, or SVG) -->
@@ -22,21 +23,31 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
           </svg> -->
         </button>
-      
+
         <!-- Center logo -->
-        <div class="bg-[#34464D] px-8 py-3 rounded-[20px] border-2 border-white">
+        <div
+          class="bg-[#34464D] px-8 py-3 rounded-[20px] border-2 border-white">
           <h1 class="text-white text-3xl font-bold">AI-Sight</h1>
         </div>
-      
+
         <!-- Right icon -->
-        <button class="w-14 h-14 flex items-center justify-center rounded-full border-2 border-white text-white">
+        <button
+          class="w-14 h-14 flex items-center justify-center rounded-full border-2 border-white text-white">
           <!-- Info icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 12h.01M12 16h.01" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-8 h-8"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M12 12h.01M12 16h.01" />
           </svg>
         </button>
       </header>
-      
 
       <div
         class="absolute inset-0 -top-[20%] flex items-center justify-center pointer-events-none">
@@ -93,6 +104,21 @@
       const webcamVideo = document.getElementById("webcam");
       const audioContainer = document.getElementById("audioContainer");
       const audioVisualizer = document.getElementById("audioVisualizer");
+
+      async function requestMediaPermissions() {
+        try {
+          await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          console.log("Permissions granted for camera and microphone");
+        } catch (error) {
+          console.error("Permissions denied:", error);
+          alert(
+            "Please allow access to your camera and microphone to use this app."
+          );
+        }
+      }
 
       // Initialize camera preview
       async function initCameraPreview() {
@@ -505,9 +531,11 @@
         }
       });
 
-      // Initialize
-      initCameraPreview();
-      connectWebSocket();
+      window.addEventListener("DOMContentLoaded", async () => {
+        await requestMediaPermissions();
+        await initCameraPreview(); // optionally start the preview immediately
+        connectWebSocket(); // or any other setup
+      });
     </script>
   </body>
 </html>
