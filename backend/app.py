@@ -93,29 +93,25 @@ class ConnectionManager:
         return text
 
     async def process_audio_input(self, audio_data, sample_rate: int):
-        """Process audio input for Gemini with correct format"""
         try:
-            
             if isinstance(audio_data, list):
-                
                 audio_array = np.array(audio_data, dtype=np.int16)
                 audio_bytes = audio_array.tobytes()
             elif isinstance(audio_data, str):
-                
                 audio_bytes = base64.b64decode(audio_data)
             else:
-                
                 audio_bytes = audio_data
 
-            
+            if len(audio_bytes) > 2 * 1024 * 1024:  # 2MB max
+                raise ValueError("Audio too large")
+                
             return {
-                "mimeType": "audio/pcm",  
-                "data": base64.b64encode(audio_bytes).decode('utf-8')  
+                "mimeType": "audio/pcm",
+                "data": base64.b64encode(audio_bytes).decode('utf-8')
             }
-            
         except Exception as e:
             logger.error(f"Audio processing error: {e}")
-            raise
+            raise ValueError("Invalid audio data format")
 
     async def process_image_input(self, image_data):
         """Process image input with complete error handling"""
@@ -380,4 +376,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug")
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000, 
+        ws_max_size=2 ** 20,  # 1MB max message size
+        limit_concurrency=100  # Max 100 connections
+    )

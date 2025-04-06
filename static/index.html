@@ -18,10 +18,6 @@
         class="absolute top-0 left-0 w-full px-6 py-4 flex justify-between items-center z-50">
         <!-- Left icon -->
         <button class="w-14 h-14">
-          <!-- Replace with your Discord icon (e.g., from Lucide, Heroicons, or SVG) -->
-          <!-- <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
-          </svg> -->
         </button>
 
         <!-- Center logo -->
@@ -67,13 +63,8 @@
         </div>
       </div>
 
-      <button
-        id="recordButton"
-        class="absolute inset-x-1/2 -translate-x-1/2 bottom-14 w-[80%] h-40 px-3 py-2 bg-white rounded-2xl shadow-black">
-        Hold to Record Audio & Video
-      </button>
-    </div>
-
+      <canvas id="gesturePad" width="300" height="300" class="absolute inset-x-1/2 -translate-x-1/2 bottom-14 w-[80%] h-40 px-3 py-2 bg-white rounded-2xl shadow-black"></canvas>
+        
     <script>
       // WebSocket and state management
       let socket = null;
@@ -83,6 +74,7 @@
       let audioProcessor = null;
       let webcamInterval = null;
       let isRecording = false;
+      let currentCameraMode = "environment"; // 'environment' or 'user'
 
       // Audio playback management
       let audioQueue = [];
@@ -94,16 +86,32 @@
       let currentAudioEndTime = 0;
       let audioChunks = [];
 
+      // Gesture Pad Variables
+      let isDrawing = false;
+      let gesturePoints = [];
+      let lastX = 0;
+      let lastY = 0;
+      let touchStartTime = 0;
+      let longPressTimer = null;
+
+      // Sound management
+      let soundEnabled = true;
+      const sounds = {
+        success: new Audio('/static/sounds/success.mp3'),
+        error: new Audio('/static/sounds/error.mp3'),
+        notification: new Audio('/static/sounds/notification.mp3'),
+        connect: new Audio('/static/sounds/connect.mp3'), 
+        disconnect: new Audio('/static/sounds/disconnect.mp3'),
+        gesture: new Audio('/static/sounds/gesture.mp3'),
+        startListening: new Audio('/static/sounds/startListening.mp3'),
+        stopListening: new Audio('/static/sounds/stopListening.mp3'),
+        alert: new Audio('/static/sounds/alert.mp3')
+      };
+
       // DOM elements
-      const connectionStatus = document.getElementById("connectionStatus");
-      // const cameraStatus = document.getElementById("cameraStatus");
-      const recordButton = document.getElementById("recordButton");
-      const sendTextBtn = document.getElementById("sendText");
-      const textInput = document.getElementById("textInput");
+      const toggleSoundBtn = document.getElementById("toggleSound");
       const responseText = document.getElementById("responseText");
       const webcamVideo = document.getElementById("webcam");
-      const audioContainer = document.getElementById("audioContainer");
-      const audioVisualizer = document.getElementById("audioVisualizer");
 
       async function requestMediaPermissions() {
         try {
@@ -126,16 +134,77 @@
           mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: false,
             video: {
-              facingMode: "environment",
+              facingMode: currentCameraMode,
             },
           });
           webcamVideo.srcObject = mediaStream;
-          // cameraStatus.textContent = "Camera active (preview only)";
         } catch (error) {
           console.error("Error initializing camera preview:", error);
-          // cameraStatus.textContent = "Camera error: " + error.message;
         }
       }
+
+      // Toggle between front and back camera
+      async function toggleCamera() {
+        currentCameraMode = currentCameraMode === "environment" ? "user" : "environment";
+        await initCameraPreview();
+        playSound("notification");
+      }
+
+      // Capture single image and send to server
+      async function captureSingleImage() {
+        if (!isConnected || !socket || socket.readyState !== WebSocket.OPEN) {
+            playSound("error");
+            return;
+        }
+
+        try {
+            const captureAndSend = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = webcamVideo.videoWidth;
+              canvas.height = webcamVideo.videoHeight;
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+
+              canvas.toBlob(
+                (blob) => {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const base64data = reader.result.split(",")[1];
+                    socket.send(
+                      JSON.stringify({
+                        type: "image",
+                        data: base64data,
+                      })
+                    );
+                  };
+                  reader.readAsDataURL(blob);
+                },
+                "image/jpeg",
+                0.7
+              );
+            };
+
+            // Send first image immediately
+            captureAndSend();
+            
+            // Send two more images at 5ms intervals
+            setTimeout(captureAndSend, 2);
+            setTimeout(captureAndSend, 8);
+            setTimeout(() => {
+              socket.send(
+                  JSON.stringify({
+                      type: "text",
+                      data: "explain the image in detail",
+                  })
+              );
+            }, 1000);
+
+            playSound("success");
+        } catch (error) {
+            console.error("Error capturing images:", error);
+            playSound("error");
+        }
+    }
 
       // Connect to WebSocket
       async function connectWebSocket() {
@@ -148,6 +217,7 @@
 
           socket.onopen = () => {
             isConnected = true;
+            playSound("connect");
           };
 
           socket.onclose = () => {
@@ -178,6 +248,8 @@
                 if (message.type === "text") {
                   responseText.innerHTML += `<p>${message.data}</p>`;
                   responseText.scrollTop = responseText.scrollHeight;
+                  playSound("notification");
+                  checkForImportantMessage(message.data);
                 }
               } catch (e) {
                 console.error("Message parsing error:", e);
@@ -202,8 +274,6 @@
         if (audioQueue.length >= MIN_BUFFERED_CHUNKS && !isPlaying) {
           processAudioQueue();
         }
-
-        // Update buffering state
       }
 
       function convertAudioDataIfNeeded(buffer) {
@@ -313,6 +383,9 @@
           audioBufferSource.connect(audioAnalyser);
           audioAnalyser.connect(playbackAudioContext.destination);
 
+          // Start visualization
+          // startAudioVisualization();
+
           // Schedule playback with precise timing
           const startTime = Math.max(
             playbackAudioContext.currentTime,
@@ -334,14 +407,15 @@
           }, 100);
         }
       }
+
       // Start media recording
       async function startMediaRecording() {
         if (isRecording) return;
 
         try {
           isRecording = true;
-          recordButton.classList.add("recording");
-          // cameraStatus.textContent = "Recording audio & video...";
+          gesturePad.classList.add("recording");
+          playSound("startListening")
 
           // Add audio to media stream
           const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -441,8 +515,8 @@
         if (!isRecording) return;
 
         isRecording = false;
-        recordButton.classList.remove("recording");
-        // cameraStatus.textContent = "Camera active (preview only)";
+        gesturePad.classList.remove("recording");
+        playSound("stopListening");
 
         if (audioProcessor) {
           audioProcessor.disconnect();
@@ -486,42 +560,45 @@
         currentAudioEndTime = 0;
       }
 
-      // Send text message
-      function sendTextMessage() {
-        const text = textInput.value.trim();
-        if (text && socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(
-            JSON.stringify({
-              type: "text",
-              data: text,
-            })
-          );
-          textInput.value = "";
+      // Play a sound with error handling
+      function playSound(soundName) {
+        if (!soundEnabled) return;
+        
+        try {
+          const sound = sounds[soundName];
+          if (sound) {
+            // Reset the audio to the beginning if it's already playing
+            sound.pause();
+            sound.currentTime = 0;
+            
+            // Play the sound
+            sound.play().catch(err => {
+              console.warn(`Sound play failed: ${err.message}`);
+            });
+          }
+        } catch (error) {
+          console.error("Error playing sound:", error);
         }
       }
 
-      // Event listeners
-      recordButton.addEventListener("mousedown", startMediaRecording);
-      recordButton.addEventListener("mouseup", stopMediaRecording);
-      recordButton.addEventListener("mouseleave", stopMediaRecording);
-
-      recordButton.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        startMediaRecording();
-      });
-
-      recordButton.addEventListener("touchend", (e) => {
-        e.preventDefault();
-        stopMediaRecording();
-      });
-
-      // sendTextBtn.addEventListener("click", sendTextMessage);
-      // textInput.addEventListener("keypress", (e) => {
-      //   if (e.key === "Enter" && !e.shiftKey) {
-      //     e.preventDefault();
-      //     sendTextMessage();
-      //   }
-      // });
+      // Add this function with your other sound-related functions
+      function checkForImportantMessage(text) {
+        // List of keywords that might indicate important information
+        const alertKeywords = [
+          "caution", "warning", "danger", "careful", "attention", 
+          "stop", "emergency", "obstacle", "hazard", "alert"
+        ];
+        
+        // Check if the message contains any alert keywords
+        const lowercaseText = text.toLowerCase();
+        const isImportant = alertKeywords.some(keyword => 
+          lowercaseText.includes(keyword)
+        );
+        
+        if (isImportant) {
+          playSound("alert"); // Play a more noticeable alert sound
+        }
+      }
 
       // Handle page visibility changes
       document.addEventListener("visibilitychange", () => {
@@ -531,10 +608,184 @@
         }
       });
 
+      // Gesture Pad functionality
+      const gesturePad = document.getElementById("gesturePad");
+      const clearGestureBtn = document.getElementById("clearGesture");
+      const ctx = gesturePad.getContext("2d");
+
+      // Set up gesture pad
+      function setupGesturePad() {
+        // Clear the canvas
+        ctx.fillStyle = "#f0f0f0";
+        ctx.fillRect(0, 0, gesturePad.width, gesturePad.height);
+        
+        // Set up drawing properties
+        ctx.strokeStyle = "#4285f4";
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+      }
+
+      // Start drawing on the pad
+      function startDrawing(e) {
+        isDrawing = true;
+        gesturePad.classList.add("drawing");
+        
+        // Get the starting position
+        const rect = gesturePad.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        lastX = clientX - rect.left;
+        lastY = clientY - rect.top;
+        
+        // Start a new gesture path
+        gesturePoints = [{x: lastX, y: lastY}];
+        
+        // Start drawing
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        
+        // Set up long press detection
+        touchStartTime = Date.now();
+        longPressTimer = setTimeout(() => {
+          if (isDrawing) {
+            // Long press detected - start recording
+            startMediaRecording();
+          }
+        }, 800); // 800ms for long press
+      }
+
+      // Draw on the pad
+      function draw(e) {
+        if (!isDrawing) return;
+        
+        // Prevent scrolling on touch devices
+        e.preventDefault();
+        
+        // Get the current position
+        const rect = gesturePad.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        const currentX = clientX - rect.left;
+        const currentY = clientY - rect.top;
+        
+        // Draw the line
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+        
+        // Save the current point
+        gesturePoints.push({x: currentX, y: currentY});
+        
+        // Update for next draw
+        lastX = currentX;
+        lastY = currentY;
+        
+        // Cancel long press if user moves too much
+        if (gesturePoints.length > 5 && longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      }
+
+      // Stop drawing and process the gesture
+      function stopDrawing() {
+        if (!isDrawing) return;
+        
+        isDrawing = false;
+        gesturePad.classList.remove("drawing");
+        
+        // Clear long press timer if it exists
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+        
+        // Check if this was a long press (recording)
+        if (isRecording) {
+          stopMediaRecording();
+          return;
+        }
+        
+        // Check if this was a tap (short duration and minimal movement)
+        const duration = Date.now() - touchStartTime;
+        const isTap = duration < 300 && gesturePoints.length < 5;
+        
+        if (isTap) {
+          // Single tap - capture image
+          captureSingleImage();
+          clearGesturePad();
+          return;
+        }
+        
+        // Process swipe gestures
+        if (gesturePoints.length > 5) {
+          processGesture(gesturePoints);
+        } else {
+          clearGesturePad();
+        }
+      }
+
+      // Process the drawn gesture
+      function processGesture(points) {
+        // Get basic info about the gesture
+        const startPoint = points[0];
+        const endPoint = points[points.length - 1];
+        const dx = endPoint.x - startPoint.x;
+        const dy = endPoint.y - startPoint.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Determine gesture type (simplified for demo)
+        let gestureType = "";
+        
+        // Simple horizontal swipe
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+          gestureType = dx > 0 ? "right swipe" : "left swipe";
+        } 
+        // Simple vertical swipe
+        else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
+          gestureType = dy > 0 ? "down swipe" : "up swipe";
+        }
+        // Default - unknown pattern
+        else {
+          gestureType = "unknown pattern";
+        }
+        
+        // Update status
+        playSound("gesture");
+        
+        // Handle gesture actions
+        if (gestureType === "left swipe" || gestureType === "right swipe") {
+          toggleCamera();
+        }
+        
+        // Clear the pad after processing
+        clearGesturePad();
+      }
+
+      // Clear the gesture pad
+      function clearGesturePad() {
+        setupGesturePad();
+        gesturePoints = [];
+      }
+
+      // Add event listeners for gestures
+      gesturePad.addEventListener("mousedown", startDrawing);
+      gesturePad.addEventListener("mousemove", draw);
+      gesturePad.addEventListener("mouseup", stopDrawing);
+      gesturePad.addEventListener("mouseleave", stopDrawing);
+
+      // Touch support
+      gesturePad.addEventListener("touchstart", startDrawing);
+      gesturePad.addEventListener("touchmove", draw);
+      gesturePad.addEventListener("touchend", stopDrawing);
+      
       window.addEventListener("DOMContentLoaded", async () => {
         await requestMediaPermissions();
         await initCameraPreview(); // optionally start the preview immediately
         connectWebSocket(); // or any other setup
+        setupGesturePad();
       });
     </script>
   </body>
