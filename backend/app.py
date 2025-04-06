@@ -36,9 +36,10 @@ def read_root():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
+    expose_headers=["*"]
 )
 
 SAMPLE_RATE = 24000
