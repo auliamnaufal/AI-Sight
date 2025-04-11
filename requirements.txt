@@ -18,8 +18,6 @@ google-auth-httplib2==0.2.0
 google-genai==1.1.0
 google-generativeai==0.8.4
 googleapis-common-protos==1.69.2
-gradio==5.15.0
-gradio_client==1.7.0
 greenlet==3.1.1
 grpcio==1.71.0
 grpcio-status==1.71.0
