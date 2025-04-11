@@ -5,7 +5,6 @@ from fastapi.responses import FileResponse
 from google import genai
 from .settings import get_settings
 import logging
-import pyaudio
 from typing import Optional
 import base64
 import json
@@ -46,13 +45,6 @@ SAMPLE_RATE = 24000
 CHANNELS = 1
 AUDIO_OUTPUT_SAMPLE_RATE = 16000
 AUDIO_INPUT_SAMPLE_RATE = 16000
-pyaudio_instance = pyaudio.PyAudio()
-audio_stream = pyaudio_instance.open(
-    format=pyaudio.paInt16,
-    channels=CHANNELS,
-    rate=SAMPLE_RATE,
-    output=True
-)
 
 class ConnectionManager:
     def __init__(self):
