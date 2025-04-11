@@ -3,7 +3,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles 
 from fastapi.responses import FileResponse
 from google import genai
-from backend.settings import get_settings
+from .settings import get_settings
 import logging
 import pyaudio
 from typing import Optional
