@@ -2,3 +2,4 @@
 /backend/settings.yaml
 /frontend/.env.local
 __pycache__
+.env

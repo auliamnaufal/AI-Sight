@@ -1,9 +1,9 @@
+import os
 import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles 
 from fastapi.responses import FileResponse
 from google import genai
-from .settings import get_settings
 import logging
 from typing import Optional
 import base64
@@ -11,6 +11,10 @@ import json
 import numpy as np
 from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+load_dotenv()  # Loads variables from .env
+
+API_KEY = os.getenv("API_KEY")
 
 class InputType(str, Enum):
     TEXT = "text"
@@ -234,7 +238,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_json({"status": "connected"})
         
         client = genai.Client(
-            api_key=get_settings().GEMINI_API_KEY,
+            api_key=API_KEY,
             http_options={"api_version": "v1alpha"}
         )
         
