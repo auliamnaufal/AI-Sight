@@ -1,0 +1,21 @@
+{
+	"name": "AI Sight",
+	"short_name": "AI Sight",
+	"description": "AI-POWERED DIGITAL EYES FOR THE VISUALLY IMPAIRED - EMPOWERING INDEPENDENCE, ONE SMART GLANCE AT A",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#ffffff",
+	"theme_color": "#ffffff",
+	"icons": [
+	  {
+		"src": "/static/favicon/web-app-manifest-192x192.png",
+		"sizes": "192x192",
+		"type": "image/png"
+	  },
+	  {
+		"src": "/static/favicon/web-app-manifest-512x512.png",
+		"sizes": "512x512",
+		"type": "image/png"
+	  }
+	]
+  }

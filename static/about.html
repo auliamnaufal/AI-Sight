@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI-Sight</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link
+      rel="icon"
+      type="image/png"
+      href="/static/favicon/favicon-96x96.png"
+      sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/static/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/static/favicon/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/static/favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="AI Sight" />
+    <link rel="manifest" href="/static/favicon/site.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap"
+      rel="stylesheet" />
+    <style>
+      body {
+        font-family: "Montserrat", sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body class="flex justify-center">
+    <div class="max-w-[28rem]">
+      <header class="flex items-center justify-between p-4 border-b">
+        <a href="/"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg
+        ></a>
+
+        <img
+          src="/static/favicon/web-app-manifest-512x512.png"
+          alt="Logo"
+          class="w-10 h-10" />
+      </header>
+
+      <main class="p-4 space-y-8">
+        <h1 class="text-xl font-bold">Meet the team</h1>
+
+        <!-- Team Member 1 -->
+        <div
+          class="bg-white shadow-md rounded-xl overflow-hidden w-full mx-auto">
+          <img
+            src="/static/images/pp-naufal.JPG"
+            alt="M. Naufal Aulia"
+            class="w-full h-96 object-cover object-top" />
+          <div class="bg-[#A5C6E0] py-4 px-8 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-semibold text-cyan-700">
+                  Muhammad Naufal Aulia
+                </h2>
+                <p class="font-medium text-sm text-gray-600">Team Lead</p>
+              </div>
+              <div class="flex justify-between space-x-1">
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.instagram.com/auliamnaufal"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 24 24">
+                      <path
+                        d="M 8 3 C 5.243 3 3 5.243 3 8 L 3 16 C 3 18.757 5.243 21 8 21 L 16 21 C 18.757 21 21 18.757 21 16 L 21 8 C 21 5.243 18.757 3 16 3 L 8 3 z M 8 5 L 16 5 C 17.654 5 19 6.346 19 8 L 19 16 C 19 17.654 17.654 19 16 19 L 8 19 C 6.346 19 5 17.654 5 16 L 5 8 C 5 6.346 6.346 5 8 5 z M 17 6 A 1 1 0 0 0 16 7 A 1 1 0 0 0 17 8 A 1 1 0 0 0 18 7 A 1 1 0 0 0 17 6 z M 12 7 C 9.243 7 7 9.243 7 12 C 7 14.757 9.243 17 12 17 C 14.757 17 17 14.757 17 12 C 17 9.243 14.757 7 12 7 z M 12 9 C 13.654 9 15 10.346 15 12 C 15 13.654 13.654 15 12 15 C 10.346 15 9 13.654 9 12 C 9 10.346 10.346 9 12 9 z"></path>
+                    </svg>
+                  </div>
+                </a>
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.linkedin.com/in/muhammad-naufal-aulia/"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 50 50">
+                      <path
+                        d="M41,4H9C6.24,4,4,6.24,4,9v32c0,2.76,2.24,5,5,5h32c2.76,0,5-2.24,5-5V9C46,6.24,43.76,4,41,4z M17,20v19h-6V20H17z M11,14.47c0-1.4,1.2-2.47,3-2.47s2.93,1.07,3,2.47c0,1.4-1.12,2.53-3,2.53C12.2,17,11,15.87,11,14.47z M39,39h-6c0,0,0-9.26,0-10 c0-2-1-4-3.5-4.04h-0.08C27,24.96,26,27.02,26,29c0,0.91,0,10,0,10h-6V20h6v2.56c0,0,1.93-2.56,5.81-2.56 c3.97,0,7.19,2.73,7.19,8.26V39z"></path>
+                    </svg>
+                  </div>
+                </a>
+              </div>
+            </div>
+            <p class="text-sm font-normal text-gray-900 mt-5">
+              Muhammad Naufal Aulia is the lead of AI-Sight and currently
+              studying at Universitas Airlangga, Indonesia, majoring in Data
+              Science. Naufal has a broad interest in technology, with a
+              particular passion for artificial intelligence and software
+              development. He is an active student who enjoys exploring new
+              things by participating in various activities and competitions
+              across multiple fields. Currently, he is involved in several
+              competitions, has joined an organization, and is focused on his
+              academic studies.
+            </p>
+            <div class="flex justify-center pt-2">
+              <button
+                class="play-button w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-blue-500 hover:text-white"
+                data-audio="/static/sounds/sinopsis-naufal.m4a">
+                ▶
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white shadow-md rounded-xl overflow-hidden w-full mx-auto">
+          <img
+            src="/static/images/pp-shahnaz.webp"
+            alt="Shahnaz Fatharani Azhima"
+            class="w-full h-96 object-cover object-top" />
+          <div class="bg-[#A5C6E0] py-4 px-8 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-semibold text-cyan-700">
+                  Shahnaz Fatharani Azhima
+                </h2>
+                <p class="font-medium text-sm text-gray-600">Team Member</p>
+              </div>
+              <div class="flex justify-between space-x-1">
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.instagram.com/shahnazfatharani"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 24 24">
+                      <path
+                        d="M 8 3 C 5.243 3 3 5.243 3 8 L 3 16 C 3 18.757 5.243 21 8 21 L 16 21 C 18.757 21 21 18.757 21 16 L 21 8 C 21 5.243 18.757 3 16 3 L 8 3 z M 8 5 L 16 5 C 17.654 5 19 6.346 19 8 L 19 16 C 19 17.654 17.654 19 16 19 L 8 19 C 6.346 19 5 17.654 5 16 L 5 8 C 5 6.346 6.346 5 8 5 z M 17 6 A 1 1 0 0 0 16 7 A 1 1 0 0 0 17 8 A 1 1 0 0 0 18 7 A 1 1 0 0 0 17 6 z M 12 7 C 9.243 7 7 9.243 7 12 C 7 14.757 9.243 17 12 17 C 14.757 17 17 14.757 17 12 C 17 9.243 14.757 7 12 7 z M 12 9 C 13.654 9 15 10.346 15 12 C 15 13.654 13.654 15 12 15 C 10.346 15 9 13.654 9 12 C 9 10.346 10.346 9 12 9 z"></path>
+                    </svg>
+                  </div>
+                </a>
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.linkedin.com/in/shahnazfatharani/ "
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 50 50">
+                      <path
+                        d="M41,4H9C6.24,4,4,6.24,4,9v32c0,2.76,2.24,5,5,5h32c2.76,0,5-2.24,5-5V9C46,6.24,43.76,4,41,4z M17,20v19h-6V20H17z M11,14.47c0-1.4,1.2-2.47,3-2.47s2.93,1.07,3,2.47c0,1.4-1.12,2.53-3,2.53C12.2,17,11,15.87,11,14.47z M39,39h-6c0,0,0-9.26,0-10 c0-2-1-4-3.5-4.04h-0.08C27,24.96,26,27.02,26,29c0,0.91,0,10,0,10h-6V20h6v2.56c0,0,1.93-2.56,5.81-2.56 c3.97,0,7.19,2.73,7.19,8.26V39z"></path>
+                    </svg>
+                  </div>
+                </a>
+              </div>
+            </div>
+            <p class="text-sm font-normal text-gray-900 mt-5">
+              Shahnaz Fatharani Azhima is a member of AI-Sight and pursues a
+              degree in Data Science Technology at Universitas Airlangga.
+              Shahnaz has a strong interest in information technology
+              development and is highly motivated by leadership, communication,
+              and the hobby of trying new challenges. She's actively engaged in
+              sustainable learning by participating in competitions,
+              organizations and keeping up with the latest trends in data
+              science.
+            </p>
+            <div class="flex justify-center pt-2">
+              <button
+                class="play-button w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-blue-500 hover:text-white"
+                data-audio="/static/sounds/sinopsis-shahnaz.m4a">
+                ▶
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white shadow-md rounded-xl overflow-hidden w-full mx-auto">
+          <img
+            src="/static/images/pp-raphael.jpeg"
+            alt="Raphael Angelo Adikara Purnama"
+            class="w-full h-96 object-cover object-top" />
+          <div class="bg-[#A5C6E0] py-4 px-8 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-semibold text-cyan-700">
+                  Raphael Angelo Adikara 
+                  Purnama
+                </h2>
+                <p class="font-medium text-sm text-gray-600">Team Member</p>
+              </div>
+              <div class="flex justify-between space-x-1">
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.instagram.com/raphael_adikara"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 24 24">
+                      <path
+                        d="M 8 3 C 5.243 3 3 5.243 3 8 L 3 16 C 3 18.757 5.243 21 8 21 L 16 21 C 18.757 21 21 18.757 21 16 L 21 8 C 21 5.243 18.757 3 16 3 L 8 3 z M 8 5 L 16 5 C 17.654 5 19 6.346 19 8 L 19 16 C 19 17.654 17.654 19 16 19 L 8 19 C 6.346 19 5 17.654 5 16 L 5 8 C 5 6.346 6.346 5 8 5 z M 17 6 A 1 1 0 0 0 16 7 A 1 1 0 0 0 17 8 A 1 1 0 0 0 18 7 A 1 1 0 0 0 17 6 z M 12 7 C 9.243 7 7 9.243 7 12 C 7 14.757 9.243 17 12 17 C 14.757 17 17 14.757 17 12 C 17 9.243 14.757 7 12 7 z M 12 9 C 13.654 9 15 10.346 15 12 C 15 13.654 13.654 15 12 15 C 10.346 15 9 13.654 9 12 C 9 10.346 10.346 9 12 9 z"></path>
+                    </svg>
+                  </div>
+                </a>
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.linkedin.com/in/raphael-purnama-9a3069346/"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 50 50">
+                      <path
+                        d="M41,4H9C6.24,4,4,6.24,4,9v32c0,2.76,2.24,5,5,5h32c2.76,0,5-2.24,5-5V9C46,6.24,43.76,4,41,4z M17,20v19h-6V20H17z M11,14.47c0-1.4,1.2-2.47,3-2.47s2.93,1.07,3,2.47c0,1.4-1.12,2.53-3,2.53C12.2,17,11,15.87,11,14.47z M39,39h-6c0,0,0-9.26,0-10 c0-2-1-4-3.5-4.04h-0.08C27,24.96,26,27.02,26,29c0,0.91,0,10,0,10h-6V20h6v2.56c0,0,1.93-2.56,5.81-2.56 c3.97,0,7.19,2.73,7.19,8.26V39z"></path>
+                    </svg>
+                  </div>
+                </a>
+              </div>
+            </div>
+            <p class="text-sm font-normal text-gray-900 mt-5">
+              Raphael Angelo Adikara Purnama is currently studying at
+              Universitas Airlangga, Indonesia, majoring in Data Science.
+              Raphael has a strong interest in data, artificial intelligence,
+              and technological innovation. As an active and enthusiastic
+              student, he is deeply involved in organizational activities,
+              including BEM, Himpunan Mahasiswa, BSO, and UKM. He also enjoys
+              participating in data analytics competitions, continuously seeking
+              opportunities to apply and expand his knowledge in real-world
+              scenarios.
+            </p>
+            <div class="flex justify-center pt-2">
+              <button
+                class="play-button w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-blue-500 hover:text-white"
+                data-audio="/static/sounds/sinopsis-raphael.m4a">
+                ▶
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white shadow-md rounded-xl overflow-hidden w-full mx-auto">
+          <img
+            src="/static/images/pp-aiko.jpeg"
+            alt="Anastasia Aiko Gabriela"
+            class="w-full h-96 object-cover" />
+          <div class="bg-[#A5C6E0] py-4 px-8 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-semibold text-cyan-700">
+                  Anastasia Aiko Gabriela
+                </h2>
+                <p class="font-medium text-sm text-gray-600">Team Member</p>
+              </div>
+              <div class="flex justify-between space-x-1">
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.instagram.com/aikogabrielaaa"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 24 24">
+                      <path
+                        d="M 8 3 C 5.243 3 3 5.243 3 8 L 3 16 C 3 18.757 5.243 21 8 21 L 16 21 C 18.757 21 21 18.757 21 16 L 21 8 C 21 5.243 18.757 3 16 3 L 8 3 z M 8 5 L 16 5 C 17.654 5 19 6.346 19 8 L 19 16 C 19 17.654 17.654 19 16 19 L 8 19 C 6.346 19 5 17.654 5 16 L 5 8 C 5 6.346 6.346 5 8 5 z M 17 6 A 1 1 0 0 0 16 7 A 1 1 0 0 0 17 8 A 1 1 0 0 0 18 7 A 1 1 0 0 0 17 6 z M 12 7 C 9.243 7 7 9.243 7 12 C 7 14.757 9.243 17 12 17 C 14.757 17 17 14.757 17 12 C 17 9.243 14.757 7 12 7 z M 12 9 C 13.654 9 15 10.346 15 12 C 15 13.654 13.654 15 12 15 C 10.346 15 9 13.654 9 12 C 9 10.346 10.346 9 12 9 z"></path>
+                    </svg>
+                  </div>
+                </a>
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.linkedin.com/in/aikogabriela/"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 50 50">
+                      <path
+                        d="M41,4H9C6.24,4,4,6.24,4,9v32c0,2.76,2.24,5,5,5h32c2.76,0,5-2.24,5-5V9C46,6.24,43.76,4,41,4z M17,20v19h-6V20H17z M11,14.47c0-1.4,1.2-2.47,3-2.47s2.93,1.07,3,2.47c0,1.4-1.12,2.53-3,2.53C12.2,17,11,15.87,11,14.47z M39,39h-6c0,0,0-9.26,0-10 c0-2-1-4-3.5-4.04h-0.08C27,24.96,26,27.02,26,29c0,0.91,0,10,0,10h-6V20h6v2.56c0,0,1.93-2.56,5.81-2.56 c3.97,0,7.19,2.73,7.19,8.26V39z"></path>
+                    </svg>
+                  </div>
+                </a>
+              </div>
+            </div>
+            <p class="text-sm font-normal text-gray-900 mt-5">
+              Anastasia Aiko Gabriela is a member of AI-sight and is
+              specializing in Data Science at Universitas Airlangga. She's
+              passionate about exploring insights through data and is eager to
+              learn and grow in the fields of AI development and emerging
+              technologies. Aiko is actively contributing to an organization and
+              is always seeking opportunities to expand her knowledge in areas
+              related to social impact, leadership, and technology.
+            </p>
+            <div class="flex justify-center pt-2">
+              <button
+                class="play-button w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-blue-500 hover:text-white"
+                data-audio="/static/sounds/sinopsis-aiko.m4a">
+                ▶
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white shadow-md rounded-xl overflow-hidden w-full mx-auto">
+          <img
+            src="/static/images/pp-cuthbert.webp"
+            alt="Cuthbert Young"
+            class="w-full h-96 object-cover object-top" />
+          <div class="bg-[#A5C6E0] py-4 px-8 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-semibold text-cyan-700">Cuthbert Young</h2>
+                <p class="font-medium text-sm text-gray-600">Team Member</p>
+              </div>
+              <div class="flex justify-between space-x-1">
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.instagram.com/cuthbertyoungg"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 24 24">
+                      <path
+                        d="M 8 3 C 5.243 3 3 5.243 3 8 L 3 16 C 3 18.757 5.243 21 8 21 L 16 21 C 18.757 21 21 18.757 21 16 L 21 8 C 21 5.243 18.757 3 16 3 L 8 3 z M 8 5 L 16 5 C 17.654 5 19 6.346 19 8 L 19 16 C 19 17.654 17.654 19 16 19 L 8 19 C 6.346 19 5 17.654 5 16 L 5 8 C 5 6.346 6.346 5 8 5 z M 17 6 A 1 1 0 0 0 16 7 A 1 1 0 0 0 17 8 A 1 1 0 0 0 18 7 A 1 1 0 0 0 17 6 z M 12 7 C 9.243 7 7 9.243 7 12 C 7 14.757 9.243 17 12 17 C 14.757 17 17 14.757 17 12 C 17 9.243 14.757 7 12 7 z M 12 9 C 13.654 9 15 10.346 15 12 C 15 13.654 13.654 15 12 15 C 10.346 15 9 13.654 9 12 C 9 10.346 10.346 9 12 9 z"></path>
+                    </svg>
+                  </div>
+                </a>
+                <a
+                  target="_blank"
+                  rel="noopener"
+                  href="https://www.linkedin.com/in/cuthbert-young-23091b2ab/"
+                  class="px-2 py-1">
+                  <div class="w-6 h-6 fill-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 50 50">
+                      <path
+                        d="M41,4H9C6.24,4,4,6.24,4,9v32c0,2.76,2.24,5,5,5h32c2.76,0,5-2.24,5-5V9C46,6.24,43.76,4,41,4z M17,20v19h-6V20H17z M11,14.47c0-1.4,1.2-2.47,3-2.47s2.93,1.07,3,2.47c0,1.4-1.12,2.53-3,2.53C12.2,17,11,15.87,11,14.47z M39,39h-6c0,0,0-9.26,0-10 c0-2-1-4-3.5-4.04h-0.08C27,24.96,26,27.02,26,29c0,0.91,0,10,0,10h-6V20h6v2.56c0,0,1.93-2.56,5.81-2.56 c3.97,0,7.19,2.73,7.19,8.26V39z"></path>
+                    </svg>
+                  </div>
+                </a>
+              </div>
+            </div>
+            <p class="text-sm font-normal text-gray-900 mt-5">
+              Cuthbert Young is currently pursuing a degree in Data Science at
+              Universitas Airlangga, Indonesia. Passionate about the
+              intersection of artificial intelligence, data analytics, and
+              emerging technologies, he is dedicated to uncovering insights that
+              drive meaningful impact. Cuthbert actively participates in
+              competitions, organizational activities, and collaborative
+              projects, continuously honing his skills in machine learning, AI
+              development, and software tools for data science. Beyond
+              academics, he is eager to explore leadership, social innovation,
+              and interdisciplinary collaboration, striving to grow both as a
+              data scientist and a changemaker in the tech-driven world.
+            </p>
+            <!-- <div class="flex justify-center pt-2">
+              <button
+                class="play-button w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-blue-500 hover:text-white"
+                data-audio="/static/sounds/sinopsis-cuthbert.m4a">
+                ▶
+              </button>
+            </div> -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Reusable Audio Element -->
+    <audio id="audio-player" preload="auto"></audio>
+
+    <!-- JavaScript -->
+    <script>
+      const audioPlayer = document.getElementById("audio-player");
+      let currentButton = null;
+
+      document.querySelectorAll(".play-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          const audioSrc = button.getAttribute("data-audio");
+
+          // If the same button is clicked again
+          if (audioPlayer.src.includes(audioSrc)) {
+            if (audioPlayer.paused) {
+              audioPlayer.play();
+              button.textContent = "⏸";
+            } else {
+              audioPlayer.pause();
+              button.textContent = "▶";
+            }
+          } else {
+            // Stop the current one
+            if (currentButton) currentButton.textContent = "▶";
+
+            audioPlayer.src = audioSrc;
+            audioPlayer.play();
+            button.textContent = "⏸";
+          }
+
+          currentButton = button;
+        });
+      });
+
+      // Reset icon when audio ends
+      audioPlayer.addEventListener("ended", () => {
+        if (currentButton) currentButton.textContent = "▶";
+      });
+    </script>
+  </body>
+</html>

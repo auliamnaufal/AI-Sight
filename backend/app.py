@@ -36,6 +36,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 def read_root():
     return FileResponse("static/index.html")
 
+@app.get("/about")
+def about_page():
+    return FileResponse("static/about.html")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
