@@ -184,50 +184,50 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-async def generate_audio_response(text: str, websocket: WebSocket):
-    try:
-        logger.debug(f"Generating audio for text: {text}")
+# async def generate_audio_response(text: str, websocket: WebSocket):
+#     try:
+#         logger.debug(f"Generating audio for text: {text}")
         
-        config = {
-            "generation_config": {
-                "response_modalities": ["AUDIO"],
-                "audio_config": {
-                    "audio_encoding": "LINEAR16",
-                    "sample_rate_hertz": 24000,  # Match frontend
-                    "chunk_size": 4096  # Add chunk size for smoother streaming
-                }
-            }
-        }
+#         config = {
+#             "generation_config": {
+#                 "response_modalities": ["AUDIO"],
+#                 "audio_config": {
+#                     "audio_encoding": "LINEAR16",
+#                     "sample_rate_hertz": 24000,  # Match frontend
+#                     "chunk_size": 4096  # Add chunk size for smoother streaming
+#                 }
+#             }
+#         }
         
-        async with manager.client.aio.live.connect(model="models/gemini-2.0-flash-exp", config=config) as session:
-            logger.debug("Gemini session started")
+#         async with manager.client.aio.live.connect(model="models/gemini-2.0-flash-exp", config=config) as session:
+#             logger.debug("Gemini session started")
             
-            await session.send(input={"text": text}, end_of_turn=True)
-            logger.debug("Text sent to Gemini")
+#             await session.send(input={"text": text}, end_of_turn=True)
+#             logger.debug("Text sent to Gemini")
             
-            turn = session.receive()
-            async for response in turn:
-                if not response:
-                    logger.warning("Empty response received")
-                    continue
+#             turn = session.receive()
+#             async for response in turn:
+#                 if not response:
+#                     logger.warning("Empty response received")
+#                     continue
                     
-                if hasattr(response, 'data') and response.data:
-                    logger.debug(f"Received audio data: {len(response.data)} bytes")
-                    try:
-                        await websocket.send_bytes(response.data)
-                        audio_stream.write(response.data)
-                    except Exception as e:
-                        logger.error(f"Error sending audio: {str(e)}")
+#                 if hasattr(response, 'data') and response.data:
+#                     logger.debug(f"Received audio data: {len(response.data)} bytes")
+#                     try:
+#                         await websocket.send_bytes(response.data)
+#                         audio_stream.write(response.data)
+#                     except Exception as e:
+#                         logger.error(f"Error sending audio: {str(e)}")
                 
-                if hasattr(response, 'text') and response.text:
-                    logger.info(f"Transcript: {response.text}")
-                    await websocket.send_json({"transcript": response.text})
+#                 if hasattr(response, 'text') and response.text:
+#                     logger.info(f"Transcript: {response.text}")
+#                     await websocket.send_json({"transcript": response.text})
             
-            logger.debug("Generation completed")
+#             logger.debug("Generation completed")
     
-    except Exception as e:
-        logger.error(f"Generation error: {str(e)}", exc_info=True)
-        await websocket.send_json({"error": str(e)})
+#     except Exception as e:
+#         logger.error(f"Generation error: {str(e)}", exc_info=True)
+#         await websocket.send_json({"error": str(e)})
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
