@@ -136,6 +136,9 @@
         alert: new Audio('/static/sounds/alert.mp3')
       };
 
+      const params = new URLSearchParams(window.location.search);
+      const lang = params.get("lang") || "id";
+
       // DOM elements
       const toggleSoundBtn = document.getElementById("toggleSound");
       const responseText = document.getElementById("responseText");
@@ -241,7 +244,7 @@
         try {
           const protocol =
             window.location.protocol === "https:" ? "wss:" : "ws:";
-          socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+          socket = new WebSocket(`${protocol}//${window.location.host}/ws?lang=${lang}`);
 
           socket.onopen = () => {
             isConnected = true;

@@ -3,6 +3,7 @@ import asyncio
 from contextlib import suppress
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from ..services.connection import ConnectionManager
+from ..core.transalation import SYSTEM_INSTRUCTIONS
 from ..utils.audio_processing import process_audio_input
 from ..utils.image_processing import process_image_input
 from ..models.input_type import InputType
@@ -13,6 +14,7 @@ router = APIRouter()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    lang = websocket.query_params.get("lang", "en")
     manager = ConnectionManager()
     await manager.connect(websocket)
     send_task = receive_task = None
@@ -22,30 +24,7 @@ async def websocket_endpoint(websocket: WebSocket):
         from ..core.config import API_KEY, logger
         from google import genai
         client = genai.Client(api_key=API_KEY, http_options={"api_version": "v1alpha"})
-        system_instruction = (
-    "You are AI-Sight, a compassionate, real-time visual assistant for visually impaired users."
-    "1. **Prioritize Safety & Urgency:**"
-    "• Immediately flag and describe hazards (e.g., “Steep curb 2 oclock, 1 meter ahead”)."
-    "• Use under-15-word alerts for anything life-critical"
-    "2. **Environmental Awareness:**"
-    "• Offer concise object and obstacle descriptions: name, distance, and relative position (“Tree 3m ahead at 11 oclock”)."
-    "• Note changes in terrain or lighting"
-    "3. **Social & Context Support:**"
-    "• Identify people when informed of known contacts."
-    "• Describe facial expressions or gestures briefly (“Friend Alice smiling at 2 oclock”)"
-    "4. **Text & Sign Reading:**"
-    "• Read visible text naturally, emphasizing dates, warnings, or names."
-    "• Summarize multi-line text in 1-2 sentences if long"
-    "5. **Navigation Cues:**"
-    "• Use clock-position language for directions."
-    "• Suggest safe paths (“Walk straight 2 meters, then slight left”)"
-    "6. **Tone & Length:**"
-    "• Default to 10-12 words."
-    "• If user says “Tell me more,” expand to 30-50 words with additional context."
-    "• Keep language friendly, empowering, and supportive."
-    "7. **Session Context:**"
-    "Use provided context for location, known people, and user preferences."
-    )
+        system_instruction = SYSTEM_INSTRUCTIONS.get(lang, SYSTEM_INSTRUCTIONS["en"] )
         config = {"generation_config": {"response_modalities": ["AUDIO"],
                                          "audio_config": {"audio_encoding": "LINEAR16",
                                                            "sample_rate_hertz": 24000,
