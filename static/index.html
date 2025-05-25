@@ -25,7 +25,9 @@
       id="webcam"
       autoplay
       playsinline
-      class="absolute top-0 left-0 w-screen h-screen object-cover -z-10"></video>
+      class="absolute top-0 left-0 w-screen h-screen object-cover -z-10"
+      aria-live="polite"
+      aria-label="Webcam live video stream, used to capture the environment"></video>
 
     <div class="max-w-md m-auto h-screen relative">
       <header
@@ -36,13 +38,15 @@
 
         <!-- Center logo -->
         <div
-          class="bg-[#34464D] px-8 py-3 rounded-[20px] border-2 border-white">
-          <h1 class="text-white text-3xl font-bold">AI-Sight</h1>
+          class="bg-[#34464D] px-8 py-3 rounded-[20px] border-2 border-white"
+          role="banner" tabindex="0">
+          <h1 class="text-white text-3xl font-bold" aria-label="AI Sight Logo">AI-Sight</h1>
         </div>
 
         <!-- Right icon -->
         <a href="/about"
-          class="w-14 h-14 flex items-center justify-center rounded-full border-2 border-white text-white">
+          class="w-14 h-14 flex items-center justify-center rounded-full border-2 border-white text-white"
+          aria-label="More information about AI-Sight" role="link">
           <!-- Info icon -->
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -60,25 +64,29 @@
       </header>
 
       <div
-        class="absolute inset-0 -top-[20%] flex items-center justify-center pointer-events-none">
+        class="absolute inset-0 -top-[20%] flex items-center justify-center pointer-events-none"
+        role="presentation">
         <div class="w-[300px] h-[300px] relative">
-          <!-- Top-left -->
+          <!-- Decorative corners for visual feedback, accessible via screen reader -->
           <div
-            class="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white rounded-tl-[40px]"></div>
-          <!-- Top-right -->
+            class="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white rounded-tl-[40px]"
+            aria-hidden="true"></div>
           <div
-            class="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white rounded-tr-[40px]"></div>
-          <!-- Bottom-left -->
+            class="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white rounded-tr-[40px]"
+            aria-hidden="true"></div>
           <div
-            class="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white rounded-bl-[40px]"></div>
-          <!-- Bottom-right -->
+            class="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white rounded-bl-[40px]"
+            aria-hidden="true"></div>
           <div
-            class="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white rounded-br-[40px]"></div>
+            class="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white rounded-br-[40px]"
+            aria-hidden="true"></div>
         </div>
       </div>
 
-      <canvas id="gesturePad" width="300" height="300" class="absolute inset-x-1/2 -translate-x-1/2 bottom-14 w-[80%] h-40 px-3 py-2 bg-white rounded-2xl shadow-black"></canvas>
-      
+      <canvas id="gesturePad" width="300" height="300" class="absolute inset-x-1/2 -translate-x-1/2 bottom-14 w-[80%] h-40 px-3 py-2 bg-white rounded-2xl shadow-black"
+      aria-label="Gesture pad for drawing commands"
+      role="region" aria-live="polite" tabindex="0"></canvas>     
+       
       <script>
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
