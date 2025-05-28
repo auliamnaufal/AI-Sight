@@ -24,7 +24,7 @@ async def websocket_endpoint(websocket: WebSocket):
         from ..core.config import API_KEY, logger
         from google import genai
         client = genai.Client(api_key=API_KEY, http_options={"api_version": "v1alpha"})
-        system_instruction = SYSTEM_INSTRUCTIONS.get(lang, SYSTEM_INSTRUCTIONS["en"] )
+        system_instruction = SYSTEM_INSTRUCTIONS.get(lang, SYSTEM_INSTRUCTIONS["en"])
         config = {"generation_config": {"response_modalities": ["AUDIO"],
                                          "audio_config": {"audio_encoding": "LINEAR16",
                                                            "sample_rate_hertz": 24000,

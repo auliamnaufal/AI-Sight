@@ -121,6 +121,7 @@
       let visualizationInterval = null;
       let currentAudioEndTime = 0;
       let audioChunks = [];
+      let gainNode = null;
 
       // Gesture Pad Variables
       let isDrawing = false;
@@ -145,7 +146,7 @@
       };
 
       const params = new URLSearchParams(window.location.search);
-      const lang = params.get("lang") || "id";
+      const lang = params.get("lang") || "en";
 
       // DOM elements
       const toggleSoundBtn = document.getElementById("toggleSound");
@@ -167,20 +168,32 @@
         }
       }
 
+      document.body.addEventListener('touchstart', async () => {
+          if (playbackAudioContext && playbackAudioContext.state === 'suspended') {
+            await playbackAudioContext.resume();
+          }
+        }, { once: true });
+
       // Initialize camera preview
       async function initCameraPreview() {
         try {
           mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: false,
-            video: {
-              facingMode: currentCameraMode,
-            },
+            video: { facingMode: currentCameraMode }
           });
           webcamVideo.srcObject = mediaStream;
+
+          // mirror for front ('user'), normal for back ('environment')
+          if (currentCameraMode === "user") {
+            webcamVideo.style.transform = "scaleX(-1)";
+          } else {
+            webcamVideo.style.transform = "scaleX(1)";
+          }
         } catch (error) {
           console.error("Error initializing camera preview:", error);
         }
       }
+
 
       // Toggle between front and back camera
       async function toggleCamera() {
@@ -374,78 +387,63 @@
       }
 
       async function processAudioQueue() {
-        if (audioQueue.length === 0) {
-          isPlaying = false;
-          currentAudioEndTime = 0;
-          return;
-        }
+          if (audioQueue.length === 0) {
+            isPlaying = false;
+            currentAudioEndTime = 0;
+            return;
+          }
 
-        // Don't start new playback if previous audio hasn't finished
-        const now = playbackAudioContext ? playbackAudioContext.currentTime : 0;
-        if (now < currentAudioEndTime) {
-          return;
-        }
+          const now = playbackAudioContext ? playbackAudioContext.currentTime : 0;
+          if (now < currentAudioEndTime) {
+            return;
+          }
 
-        isPlaying = true;
+          isPlaying = true;
 
-        try {
-          // Initialize audio context if needed
+          // Initialize AudioContext graph once
           if (!playbackAudioContext) {
-            playbackAudioContext = new (window.AudioContext ||
-              window.webkitAudioContext)({
+            playbackAudioContext = new (window.AudioContext || window.webkitAudioContext)({
               sampleRate: 24000,
             });
-
             audioAnalyser = playbackAudioContext.createAnalyser();
             audioAnalyser.fftSize = 64;
+
+            gainNode = playbackAudioContext.createGain();
+            gainNode.gain.value = 2.0;  // Boost volume 2×
+
+            // Connect analyser → gain → destination
+            audioAnalyser.connect(gainNode);
+            gainNode.connect(playbackAudioContext.destination);
           }
 
-          // Get the next chunk of audio
-          const audioData = audioQueue.shift();
+          try {
+            const chunk = audioQueue.shift();
+            const audioBuffer = await playbackAudioContext.decodeAudioData(chunk);
+            const duration = audioBuffer.duration;
 
-          // Decode the audio data
-          const audioBuffer = await playbackAudioContext.decodeAudioData(
-            audioData
-          );
-          const duration = audioBuffer.duration;
+            if (audioBufferSource) {
+              audioBufferSource.stop();
+              audioBufferSource.disconnect();
+            }
 
-          // Create and configure audio source
-          if (audioBufferSource) {
-            audioBufferSource.stop();
-            audioBufferSource.disconnect();
+            audioBufferSource = playbackAudioContext.createBufferSource();
+            audioBufferSource.buffer = audioBuffer;
+
+            // Connect source → analyser
+            audioBufferSource.connect(audioAnalyser);
+
+            const startTime = Math.max(playbackAudioContext.currentTime, currentAudioEndTime);
+            audioBufferSource.start(startTime);
+            currentAudioEndTime = startTime + duration;
+
+            audioBufferSource.onended = () => {
+              setTimeout(processAudioQueue, 30);
+            };
+          } catch (error) {
+            console.error("Audio playback error:", error);
+            setTimeout(processAudioQueue, 100);
           }
-
-          audioBufferSource = playbackAudioContext.createBufferSource();
-          audioBufferSource.buffer = audioBuffer;
-
-          // Connect to analyzer and destination
-          audioBufferSource.connect(audioAnalyser);
-          audioAnalyser.connect(playbackAudioContext.destination);
-
-          // Start visualization
-          // startAudioVisualization();
-
-          // Schedule playback with precise timing
-          const startTime = Math.max(
-            playbackAudioContext.currentTime,
-            currentAudioEndTime
-          );
-          audioBufferSource.start(startTime);
-          currentAudioEndTime = startTime + duration;
-
-          // When this chunk finishes, play the next one
-          audioBufferSource.onended = () => {
-            setTimeout(() => {
-              processAudioQueue();
-            }, 30); // Small delay between chunks
-          };
-        } catch (error) {
-          console.error("Audio playback error:", error);
-          setTimeout(() => {
-            processAudioQueue();
-          }, 100);
         }
-      }
 
       // Start media recording
       async function startMediaRecording() {
